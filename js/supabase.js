@@ -145,13 +145,8 @@ export async function fetchAdminOrders({ status = 'all', limit = 20, offset = 0,
   return q;
 }
 
-async function changeOrderStatus(id, status) {
-  console.log('Updating order:', id, 'to status:', status);
-  const { data, error } = await updateOrderStatus(id, status);
-  console.log('Result:', data, error);
-  if (error) { toast('Erreur mise à jour', true); return; }
-  toast('Statut mis à jour');
-  await refreshSidebar();
+export async function updateOrderStatus(id, status) {
+  return db.from('orders').update({ status }).eq('id', id);
 }
 
 window.changeOrderStatus = changeOrderStatus;

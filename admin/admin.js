@@ -261,6 +261,19 @@ async function changeOrderStatus(id, status) {
   if (error) { toast('Erreur mise à jour', true); return; }
   toast('Statut mis à jour');
   await refreshSidebar();
+
+  // Envoyer email de mise à jour au client
+  const { data: order } = await db
+    .from('orders')
+    .select('*, order_items(product_name, quantity, product_price)')
+    .eq('id', id)
+    .single();
+
+  if (order) {
+    await db.functions.invoke('send-order-email', {
+      body: { order, isConfirmation: false },
+    });
+  }
 }
 
 // ─── Order detail modal ──────────────────────────────────

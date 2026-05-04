@@ -153,6 +153,8 @@ async function changeOrderStatus(id, status) {
   toast('Statut mis à jour');
   await refreshSidebar();
 }
+
+window.changeOrderStatus = changeOrderStatus;
 // ═══════════════════════════════════════════
 //  ADMIN — PRODUCTS
 // ═══════════════════════════════════════════

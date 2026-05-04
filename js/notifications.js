@@ -99,15 +99,6 @@ export async function initNotifications(containerSelector, { isAdmin = false } =
     };
 
     list.innerHTML = data.map(n => `
-      <li class="notif-item ${n.read ? '' : 'unread'}" data-id="${n.id}">
-        <span class="notif-icon">${TYPE_ICONS[n.type] || '🔔'}</span>
-        <div class="notif-body">
-          <p class="notif-item-title">${esc(n.title)}</p>
-          <p class="notif-item-msg">${esc(n.message || '')}</p>
-          <p class="notif-item-time">${fmtDate(n.created_at)}</p>
-        </div>
-        ${!n.read ? '<span class="notif-dot"></span>' : ''}
-      </li>
     `).join('');
 
     // Click on item → mark it read

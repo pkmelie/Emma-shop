@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>La Carte Royale</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Josefin+Sans:wght@300;400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ══════════════ NAVIGATION ══════════════ -->
+  <nav id="navbar">
+    <button class="nav-logo" data-page="boutique">La <em>Carte</em> Royale</button>
+    <div class="nav-links">
+      <a data-page="boutique" class="nav-link active">Boutique</a>
+      <a data-page="tarifs"   class="nav-link">Tarifs</a>
+      <a data-page="contact"  class="nav-link">Contact</a>
+    </div>
+    <button id="cartToggle" class="cart-btn" aria-label="Panier">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      Panier
+      <span id="cartBadge" class="cart-badge hidden">0</span>
+    </button>
+  </nav>
+
+  <!-- ══════════════ PAGES ══════════════ -->
+  <main>
+
+    <!-- PAGE : BOUTIQUE -->
+    <section id="page-boutique" class="page active">
+      <div class="hero">
+        <div class="hero-inner">
+          <p class="hero-eyebrow">Collection Artisanale · Fait Main en France</p>
+          <h1>Des cartes <em>d'exception</em><br>conçues pour vous</h1>
+          <p class="hero-sub">Jeux préfaits &amp; créations sur mesure · Livraison soignée</p>
+          <button class="btn-outline" onclick="document.getElementById('catalog').scrollIntoView({behavior:'smooth'})">
+            Découvrir la collection
+          </button>
+        </div>
+        <div class="hero-deco" aria-hidden="true">
+          <span>♠</span><span>♥</span><span>♦</span><span>♣</span>
+        </div>
+      </div>
+
+      <div class="catalog-header" id="catalog">
+        <h2 class="section-title">Nos Créations</h2>
+        <span id="productCount" class="section-meta">—</span>
+      </div>
+
+      <div id="productGrid" class="product-grid">
+        <div class="skeleton-grid">
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE : TARIFS -->
+    <section id="page-tarifs" class="page">
+      <div class="page-header">
+        <h2 class="section-title">Tarifs</h2>
+        <p class="page-intro">Matériaux premium · Fabrication artisanale · Livraison en France</p>
+      </div>
+
+      <div class="tarifs-wrap">
+        <h3 class="tarif-heading">Cartes Préfaites</h3>
+        <div class="tarif-grid">
+          <div class="tarif-card">
+            <p class="tarif-name">Essentiel</p>
+            <p class="tarif-price"><sup>€</sup>18</p>
+            <ul class="tarif-list">
+              <li>54 cartes · format standard</li>
+              <li>3 coloris disponibles</li>
+              <li>Boîte rigide incluse</li>
+              <li>Délai : 3–5 jours</li>
+            </ul>
+            <button class="btn-tarif" data-page="boutique">Commander</button>
+          </div>
+          <div class="tarif-card featured">
+            <span class="tarif-badge">Populaire</span>
+            <p class="tarif-name">Prestige</p>
+            <p class="tarif-price"><sup>€</sup>32</p>
+            <ul class="tarif-list">
+              <li>54 cartes · papier premium</li>
+              <li>8 coloris disponibles</li>
+              <li>Finition vernis mat + étui gravé</li>
+              <li>Délai : 5–7 jours</li>
+            </ul>
+            <button class="btn-tarif" data-page="boutique">Commander</button>
+          </div>
+          <div class="tarif-card">
+            <p class="tarif-name">Collector</p>
+            <p class="tarif-price"><sup>€</sup>45</p>
+            <ul class="tarif-list">
+              <li>54 cartes numérotées</li>
+              <li>Tranche dorée à la main</li>
+              <li>Coffret bois gravé</li>
+              <li>Édition limitée</li>
+            </ul>
+            <button class="btn-tarif" data-page="boutique">Commander</button>
+          </div>
+        </div>
+
+        <h3 class="tarif-heading">Cartes Personnalisées</h3>
+        <div class="tarif-grid">
+          <div class="tarif-card">
+            <p class="tarif-name">Sur Mesure S</p>
+            <p class="tarif-price"><sup>€</sup>55</p>
+            <ul class="tarif-list">
+              <li>Dos de carte personnalisé</li>
+              <li>Votre logo ou texte</li>
+              <li>Boîte standard</li>
+              <li>Délai : 7 jours</li>
+            </ul>
+            <button class="btn-tarif" data-page="contact">Demander</button>
+          </div>
+          <div class="tarif-card featured">
+            <span class="tarif-badge">Recommandé</span>
+            <p class="tarif-name">Sur Mesure M</p>
+            <p class="tarif-price"><sup>€</sup>85</p>
+            <ul class="tarif-list">
+              <li>Design complet (toutes les faces)</li>
+              <li>Consultation graphique incluse</li>
+              <li>Coffret gravé offert</li>
+              <li>Délai : 14 jours</li>
+            </ul>
+            <button class="btn-tarif" data-page="contact">Demander</button>
+          </div>
+          <div class="tarif-card">
+            <p class="tarif-name">Prestige Perso</p>
+            <p class="tarif-price"><sup>€</sup>140</p>
+            <ul class="tarif-list">
+              <li>Création artistique unique</li>
+              <li>Finitions dorées à la feuille</li>
+              <li>Suivi personnalisé</li>
+              <li>Délai : 21 jours</li>
+            </ul>
+            <button class="btn-tarif" data-page="contact">Demander</button>
+          </div>
+        </div>
+
+        <div class="tarif-note">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Remises disponibles dès 5 jeux commandés. Pour un devis professionnel ou événementiel, contactez-nous.
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE : CONTACT -->
+    <section id="page-contact" class="page">
+      <div class="page-header">
+        <h2 class="section-title">Commande Personnalisée</h2>
+        <p class="page-intro">Décrivez votre projet — réponse sous 48h</p>
+      </div>
+
+      <div class="contact-wrap">
+        <form id="contactForm" novalidate>
+          <div class="form-row">
+            <div class="field">
+              <label for="c_first">Prénom <span class="req">*</span></label>
+              <input type="text" id="c_first" name="first_name" autocomplete="given-name" placeholder="Marie" required />
+              <span class="field-err"></span>
+            </div>
+            <div class="field">
+              <label for="c_last">Nom <span class="req">*</span></label>
+              <input type="text" id="c_last" name="last_name" autocomplete="family-name" placeholder="Dupont" required />
+              <span class="field-err"></span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="c_email">Email <span class="req">*</span></label>
+            <input type="email" id="c_email" name="email" autocomplete="email" placeholder="marie@email.com" required />
+            <span class="field-err"></span>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label for="c_type">Type de commande</label>
+              <select id="c_type" name="request_type">
+                <option value="">Sélectionner...</option>
+                <option>Dos de carte personnalisé</option>
+                <option>Jeu complet sur mesure</option>
+                <option>Coffret cadeau gravé</option>
+                <option>Commande en lot</option>
+                <option>Autre projet</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="c_qty">Quantité souhaitée</label>
+              <input type="text" id="c_qty" name="quantity" placeholder="Ex : 1 jeu, 10 jeux..." />
+            </div>
+          </div>
+          <div class="field">
+            <label for="c_budget">Budget estimé</label>
+            <input type="text" id="c_budget" name="budget" placeholder="Ex : 50 – 100 €" />
+          </div>
+          <div class="field">
+            <label>Couleurs préférées</label>
+            <div class="swatch-row" id="swatchRow">
+              <button type="button" class="swatch" data-color="Noir"       style="--c:#1A1612"></button>
+              <button type="button" class="swatch" data-color="Or"         style="--c:#C9A84C"></button>
+              <button type="button" class="swatch" data-color="Bordeaux"   style="--c:#8B2635"></button>
+              <button type="button" class="swatch" data-color="Bleu nuit"  style="--c:#2C4A6E"></button>
+              <button type="button" class="swatch" data-color="Vert forêt" style="--c:#3D6B3F"></button>
+              <button type="button" class="swatch" data-color="Crème"      style="--c:#FAF7F0;outline:1px solid #ccc"></button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="c_desc">Description du projet <span class="req">*</span></label>
+            <textarea id="c_desc" name="description" rows="5" placeholder="Thème, style graphique, occasion (anniversaire, mariage, entreprise...), éléments à intégrer..." required></textarea>
+            <span class="field-err"></span>
+          </div>
+          <button type="submit" class="btn-submit" id="contactSubmit">
+            <span class="btn-label">Envoyer la demande</span>
+            <span class="btn-spinner hidden"></span>
+          </button>
+        </form>
+        <div id="contactSuccess" class="success-state hidden">
+          <div class="success-icon">✦</div>
+          <h3>Demande envoyée !</h3>
+          <p>Nous vous répondrons dans les 48h ouvrées.</p>
+          <button class="btn-outline-dark" data-page="boutique">Retour à la boutique</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ══════════════ CART DRAWER ══════════════ -->
+  <div id="cartOverlay" class="cart-overlay" role="dialog" aria-modal="true" aria-label="Panier">
+    <div id="cartDrawer" class="cart-drawer">
+      <div class="cart-head">
+        <h2>Votre Panier</h2>
+        <button id="cartClose" class="icon-btn" aria-label="Fermer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="cartBody" class="cart-body"></div>
+      <div class="cart-foot">
+        <div class="cart-total-row">
+          <span class="cart-total-lbl">Total</span>
+          <span id="cartTotal" class="cart-total-val">0,00 €</span>
+        </div>
+        <button id="checkoutBtn" class="btn-checkout" disabled>Passer la commande →</button>
+      </div>
+    </div>
+    <div class="cart-backdrop" id="cartBackdrop"></div>
+  </div>
+
+  <!-- ══════════════ CHECKOUT MODAL ══════════════ -->
+  <div id="checkoutModal" class="modal-wrap hidden" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-head">
+        <h2>Finaliser</h2>
+        <button id="modalClose" class="icon-btn light" aria-label="Fermer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="modalBody" class="modal-body">
+        <form id="checkoutForm" novalidate>
+          <p class="modal-section">Coordonnées</p>
+          <div class="form-row">
+            <div class="field"><label>Prénom <span class="req">*</span></label><input type="text" id="o_first" placeholder="Marie" required /></div>
+            <div class="field"><label>Nom <span class="req">*</span></label><input type="text" id="o_last" placeholder="Dupont" required /></div>
+          </div>
+          <div class="field"><label>Email <span class="req">*</span></label><input type="email" id="o_email" placeholder="marie@email.com" required /></div>
+          <div class="field"><label>Téléphone</label><input type="tel" id="o_phone" placeholder="+33 6 00 00 00 00" /></div>
+
+          <p class="modal-section">Livraison</p>
+          <div class="field"><label>Adresse <span class="req">*</span></label><input type="text" id="o_addr" placeholder="12 rue des Artisans" required /></div>
+          <div class="form-row">
+            <div class="field"><label>Ville <span class="req">*</span></label><input type="text" id="o_city" placeholder="Paris" required /></div>
+            <div class="field"><label>Code postal <span class="req">*</span></label><input type="text" id="o_zip" placeholder="75001" required /></div>
+          </div>
+          <div class="field"><label>Pays</label><input type="text" id="o_country" value="France" /></div>
+
+          <p class="modal-section">Récapitulatif</p>
+          <div id="orderSummary" class="order-summary"></div>
+
+          <button type="submit" class="btn-checkout w100" id="placeBtn">
+            <span class="btn-label">Confirmer la commande</span>
+            <span class="btn-spinner hidden"></span>
+          </button>
+        </form>
+      </div>
+      <div id="orderSuccess" class="success-state hidden" style="padding:3rem 2rem">
+        <div class="success-icon">✦</div>
+        <h3>Commande confirmée !</h3>
+        <p>Un récapitulatif vous sera envoyé par email.</p>
+        <button class="btn-outline-dark" id="orderSuccessClose">Fermer</button>
+      </div>
+    </div>
+    <div class="modal-backdrop" id="modalBackdrop"></div>
+  </div>
+
+  <!-- ══════════════ TOAST ══════════════ -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- ══════════════ FOOTER ══════════════ -->
+  <footer>
+    <p class="footer-logo">La <em>Carte</em> Royale</p>
+    <p class="footer-sub">Création artisanale · France · contact@lacarteroyale.fr</p>
+  </footer>
+
+  <!-- Supabase SDK (ESM via CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <!-- App modules -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

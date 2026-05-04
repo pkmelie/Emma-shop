@@ -248,3 +248,24 @@ export function subscribeToNotifications(callback) {
     )
     .subscribe();
 }
+
+// ═══════════════════════════════════════════
+//  STRIPE CHECKOUT
+// ═══════════════════════════════════════════
+
+/**
+ * Crée une session Stripe Checkout via une Edge Function Supabase.
+ * La fonction "create-checkout" doit être déployée dans ton projet Supabase.
+ *
+ * @param {{ firstName, lastName, email }} customer
+ * @param {CartItem[]} items
+ * @param {string} orderId
+ * @returns {{ url: string|null, error: Error|null }}
+ */
+export async function createStripeCheckout(customer, items, orderId) {
+  const { data, error } = await db.functions.invoke('create-checkout', {
+    body: { customer, items, orderId },
+  });
+  if (error) return { url: null, error };
+  return { url: data?.url ?? null, error: null };
+}

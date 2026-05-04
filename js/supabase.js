@@ -145,8 +145,10 @@ export async function fetchAdminOrders({ status = 'all', limit = 20, offset = 0,
   return q;
 }
 
-export async function updateOrderStatus(id, status) {
-  return db.from('orders').update({ status }).eq('id', id);
+export async function updateOrderStatus(id, status, tracking_number = null) {
+  const payload = { status };
+  if (tracking_number) payload.tracking_number = tracking_number;
+  return db.from('orders').update(payload).eq('id', id);
 }
 
 

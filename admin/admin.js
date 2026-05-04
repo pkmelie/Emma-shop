@@ -257,12 +257,19 @@ async function loadOrders() {
 }
 
 async function changeOrderStatus(id, status) {
-  const { error } = await updateOrderStatus(id, status);
+  let tracking_number = null;
+
+  // Demander le numéro de suivi si expédiée
+  if (status === 'shipped') {
+    tracking_number = prompt('Numéro de suivi Mondial Relay (optionnel) :');
+  }
+
+  const { error } = await updateOrderStatus(id, status, tracking_number);
   if (error) { toast('Erreur mise à jour', true); return; }
   toast('Statut mis à jour');
   await refreshSidebar();
 
-  // Envoyer email de mise à jour au client
+  // Envoyer email
   const { data: order } = await db
     .from('orders')
     .select('*, order_items(product_name, quantity, product_price)')
@@ -270,12 +277,13 @@ async function changeOrderStatus(id, status) {
     .single();
 
   if (order) {
+    if (tracking_number) order.tracking_number = tracking_number;
     await db.functions.invoke('send-order-email', {
       body: { order, isConfirmation: false },
     });
   }
 }
-window.changeOrderStatus = changeOrderStatus; // ← ici
+window.changeOrderStatus = changeOrderStatus;
 
 // ─── Order detail modal ──────────────────────────────────
 window.openOrderModal = function(order) {

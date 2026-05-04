@@ -146,9 +146,14 @@ export async function fetchAdminOrders({ status = 'all', limit = 20, offset = 0,
 }
 
 export async function updateOrderStatus(id, status) {
-  return db.from('orders').update({ status }).eq('id', id);
+  const { data: { session } } = await db.auth.getSession();
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      headers: { Authorization: `Bearer ${session?.access_token}` }
+    }
+  });
+  return client.from('orders').update({ status }).eq('id', id);
 }
-
 // ═══════════════════════════════════════════
 //  ADMIN — PRODUCTS
 // ═══════════════════════════════════════════

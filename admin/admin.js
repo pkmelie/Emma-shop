@@ -275,6 +275,7 @@ async function changeOrderStatus(id, status) {
     });
   }
 }
+window.changeOrderStatus = changeOrderStatus; // ← ici
 
 // ─── Order detail modal ──────────────────────────────────
 window.openOrderModal = function(order) {

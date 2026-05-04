@@ -149,7 +149,7 @@ export async function updateOrderStatus(id, status) {
   return db.from('orders').update({ status }).eq('id', id);
 }
 
-window.changeOrderStatus = changeOrderStatus;
+
 // ═══════════════════════════════════════════
 //  ADMIN — PRODUCTS
 // ═══════════════════════════════════════════

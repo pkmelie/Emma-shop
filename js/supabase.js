@@ -145,14 +145,13 @@ export async function fetchAdminOrders({ status = 'all', limit = 20, offset = 0,
   return q;
 }
 
-export async function updateOrderStatus(id, status) {
-  const { data: { session } } = await db.auth.getSession();
-  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: {
-      headers: { Authorization: `Bearer ${session?.access_token}` }
-    }
-  });
-  return client.from('orders').update({ status }).eq('id', id);
+async function changeOrderStatus(id, status) {
+  console.log('Updating order:', id, 'to status:', status);
+  const { data, error } = await updateOrderStatus(id, status);
+  console.log('Result:', data, error);
+  if (error) { toast('Erreur mise à jour', true); return; }
+  toast('Statut mis à jour');
+  await refreshSidebar();
 }
 // ═══════════════════════════════════════════
 //  ADMIN — PRODUCTS

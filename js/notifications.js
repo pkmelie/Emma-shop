@@ -23,10 +23,13 @@ export async function initNotifications(containerSelector, { isAdmin = false } =
   const container = document.querySelector(containerSelector);
   if (!container) return;
 
-  // ── Build bell widget ──────────────────────────────────────
   const wrapper = document.createElement('div');
   wrapper.className = 'notif-widget';
   wrapper.innerHTML = `
+    <button class="notif-bell" aria-label="Notifications" aria-expanded="false">
+      🔔
+      <span class="notif-badge" style="display:none">0</span>
+    </button>
     <div class="notif-dropdown" hidden>
       <div class="notif-header">
         <span class="notif-title">Notifications</span>

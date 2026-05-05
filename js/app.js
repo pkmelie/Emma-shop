@@ -23,9 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     UI.toast(`"${product.name}" ajouté au panier`);
   });
 
-  // Notifications dans la nav
-  await initNotifications('.nav-links', { isAdmin: false });
-  requestNotificationPermission();
+  
 
   await loadCatalog();
   handlePaymentReturn();
@@ -64,7 +62,7 @@ async function loadCatalog() {
     const isBtn = e.target.closest('.add-btn');
     if (card && !isBtn) {
       const id = card.dataset.id;
-      const product = data.find(p => p.id === id);
+      const product = data.find(p => p.id == id);  // == tolère string/number
       if (product) openProductModal(product);
     }
   });

@@ -22,7 +22,7 @@ export const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 export async function fetchProducts() {
   const { data, error } = await db
     .from('products')
-    .select('id, name, description, price, badge, category, suit_icon, image_url, stock')
+    .select('id, name, description, price, badge, category, suit_icon, image_url, images, stock')
     .eq('active', true)
     .order('created_at', { ascending: true });
   return { data, error };

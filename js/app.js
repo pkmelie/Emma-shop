@@ -23,7 +23,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     UI.toast(`"${product.name}" ajouté au panier`);
   });
 
-  
+  // Notifications dans la nav
+  await initNotifications('.nav-links', { isAdmin: false });
+  requestNotificationPermission();
 
   await loadCatalog();
   handlePaymentReturn();

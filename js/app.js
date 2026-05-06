@@ -147,20 +147,131 @@ function initCheckout() {
   });
 }
 
-// ── Widget officiel Mondial Relay v4 — Points Relais ────────────────────
-// Le widget jQuery ne peut pas être appelé depuis un module ES (scope isolé).
-// On passe par des fonctions globales définies dans index.html (script classique)
-// et on communique via un événement custom "mr:selected".
+// ── Points Relais Mondial Relay — WebService SOAP ────────────────────
+// Appel direct au WebService officiel Mondial Relay (SOAP/XML).
+// Mode démo : Brand = "BDTEST  " (espace à la fin requis).
+// En production : remplacer Brand + Enseigne par votre compte Mondial Relay.
+// Doc WS : https://www.mondialrelay.fr/media/108937/Solution_Technique_V4.6.pdf
 
-// Écouter le callback du widget MR (déclenché depuis le script classique de index.html)
-document.addEventListener('mr:selected', e => {
-  selectRelay(e.detail);
-});
+const MR_WS_URL   = 'https://www.mondialrelay.fr/WebService/Web_Services.asmx';
+const MR_BRAND    = 'BDTEST  '; // ← remplacer par votre code client (11 chars, espaces compris)
+const MR_ENSEIGNE = 'CC_DEMO '; // ← remplacer par votre enseigne
 
 /**
- * Lance la recherche : délègue au pont jQuery défini dans index.html.
+ * Appelle le WebService Mondial Relay pour obtenir les points relais proches.
+ * @param {string} zip  Code postal (5 chiffres)
+ * @returns {Promise<Array>} Liste de points relais
  */
-function searchRelayPoints() {
+async function fetchRelayPoints(zip) {
+  const body = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <WSI_RecherchePointRelais xmlns="http://www.mondialrelay.fr/webservice/">
+      <Enseigne>${MR_ENSEIGNE}</Enseigne>
+      <Pays>FR</Pays>
+      <CP>${zip}</CP>
+      <Nombre>7</Nombre>
+      <DelaiEnvoi>0</DelaiEnvoi>
+      <RayonRecherche>20</RayonRecherche>
+      <TypeActivite>EXP</TypeActivite>
+    </WSI_RecherchePointRelais>
+  </soap:Body>
+</soap:Envelope>`;
+
+  const res = await fetch(MR_WS_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'text/xml; charset=utf-8',
+      'SOAPAction':   'http://www.mondialrelay.fr/webservice/WSI_RecherchePointRelais',
+    },
+    body,
+  });
+
+  if (!res.ok) throw new Error(`WS HTTP ${res.status}`);
+  const xml  = await res.text();
+  const doc  = new DOMParser().parseFromString(xml, 'text/xml');
+  const pts  = [...doc.querySelectorAll('PointRelais_Details')];
+
+  return pts.map(p => ({
+    id:   p.querySelector('Num')?.textContent?.trim()   || '',
+    name: p.querySelector('LgAdr1')?.textContent?.trim() || 'Point Relais',
+    addr: [
+      p.querySelector('LgAdr3')?.textContent?.trim(),
+      p.querySelector('LgAdr4')?.textContent?.trim(),
+    ].filter(Boolean).join(', '),
+    city: p.querySelector('Ville')?.textContent?.trim()  || '',
+    zip:  p.querySelector('CP')?.textContent?.trim()     || zip,
+    lat:  parseFloat(p.querySelector('Latitude')?.textContent?.replace(',', '.') || '0'),
+    lon:  parseFloat(p.querySelector('Longitude')?.textContent?.replace(',', '.') || '0'),
+    hours: {
+      lun: p.querySelector('Horaires_Lundi')?.textContent?.trim()    || '',
+      mar: p.querySelector('Horaires_Mardi')?.textContent?.trim()    || '',
+      mer: p.querySelector('Horaires_Mercredi')?.textContent?.trim() || '',
+      jeu: p.querySelector('Horaires_Jeudi')?.textContent?.trim()    || '',
+      ven: p.querySelector('Horaires_Vendredi')?.textContent?.trim() || '',
+      sam: p.querySelector('Horaires_Samedi')?.textContent?.trim()   || '',
+    },
+  }));
+}
+
+// Carte Leaflet inline
+let leafMap = null;
+let leafMarkers = [];
+
+function initLeafletMap(lat, lon) {
+  const wrap = document.getElementById('relayMapWrap');
+  wrap.style.display = '';
+  wrap.classList.remove('hidden');
+
+  leafMarkers.forEach(m => m.remove());
+  leafMarkers = [];
+
+  if (!leafMap) {
+    leafMap = L.map('relayMap', { zoomControl: true }).setView([lat, lon], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19,
+    }).addTo(leafMap);
+  } else {
+    leafMap.setView([lat, lon], 13);
+  }
+}
+
+function renderRelayList(points) {
+  const listEl = document.getElementById('relayList');
+  listEl.innerHTML = '';
+
+  points.forEach((p, i) => {
+    const markerIcon = L.divIcon({
+      className: '',
+      html: `<div style="width:26px;height:26px;background:#1a1612;border:2px solid #c9a96e;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#c9a96e">${i+1}</div>`,
+      iconSize: [26, 26], iconAnchor: [13, 13],
+    });
+    const marker = L.marker([p.lat, p.lon], { icon: markerIcon }).addTo(leafMap);
+    marker.bindPopup(`<strong>${p.name}</strong><br><span style="font-size:12px;color:#555">${p.addr}, ${p.city}</span>`);
+    leafMarkers.push(marker);
+
+    const item = document.createElement('div');
+    item.className = 'relay-item';
+    item.innerHTML = `
+      <div class="relay-item-num">${i+1}</div>
+      <div class="relay-item-info">
+        <strong>${p.name}</strong>
+        <span>${p.addr}${p.city ? (p.addr ? ', ' : '') + p.city : ''}</span>
+      </div>
+      <button type="button" class="relay-item-btn">Choisir</button>`;
+    item.querySelector('.relay-item-btn').addEventListener('click', () => selectRelay(p));
+    item.addEventListener('mouseenter', () => { leafMap.panTo([p.lat, p.lon]); marker.openPopup(); });
+    listEl.appendChild(item);
+  });
+}
+
+/**
+ * Lance la recherche de points relais via le WebService Mondial Relay.
+ */
+async function searchRelayPoints() {
   const zip   = document.getElementById('relay_zip').value.trim();
   const errEl = document.getElementById('relayError');
   errEl.textContent = '';
@@ -170,13 +281,27 @@ function searchRelayPoints() {
     return;
   }
 
-  // Afficher la zone widget
-  const wrap = document.getElementById('relayMapWrap');
-  wrap.style.display = '';
-  wrap.classList.remove('hidden');
+  const btn = document.getElementById('relaySearchBtn');
+  btn.disabled = true;
 
-  // Appel au pont global (script classique dans index.html qui a accès à jQuery)
-  window.searchMRWidget(zip);
+  try {
+    const points = await fetchRelayPoints(zip);
+
+    if (!points.length) {
+      errEl.textContent = 'Aucun point relais trouvé pour ce code postal. Essayez un code postal voisin.';
+      return;
+    }
+
+    // Centre la carte sur le 1er résultat
+    initLeafletMap(points[0].lat, points[0].lon);
+    renderRelayList(points);
+
+  } catch (err) {
+    console.error(err);
+    errEl.textContent = 'Erreur lors de la recherche. Vérifiez votre connexion et réessayez.';
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function selectRelay(relay) {

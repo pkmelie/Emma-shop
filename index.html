@@ -298,7 +298,8 @@
           <!-- Carte Google Maps -->
           <!-- Zone widget Mondial Relay v4 (s'affiche après clic Rechercher) -->
           <div id="relayMapWrap" class="relay-map-wrap hidden">
-            <div id="Zone_Widget"></div>
+            <div id="relayMap" class="relay-map"></div>
+            <div id="relayList" class="relay-list"></div>
           </div>
 
           <!-- Point relais sélectionné -->
@@ -371,52 +372,9 @@
     })();
   </script>
 
-  <!-- Widget officiel Mondial Relay v4 (jQuery plugin, données complètes) -->
-  <!-- Doc : https://widget.mondialrelay.com/ -->
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  <link rel="stylesheet" href="//unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="//unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://widget.mondialrelay.com/parcelshop-picker/jquery.mondialrelay.parcelshoppicker.min.js"></script>
-
-  <!-- Pont entre le widget jQuery MR et le module ES app.js -->
-  <!-- Doit être un script classique (pas module) pour accéder à jQuery global -->
-  <script>
-    var mrWidgetInitialized = false;
-
-    window.initMRWidget = function(zip) {
-      if (mrWidgetInitialized) return;
-      mrWidgetInitialized = true;
-      $('#Zone_Widget').MR_ParcelShopPicker({
-        Target:           '#o_relay_id',
-        Brand:            'BDTEST  ',
-        Country:          'FR',
-        PostCode:         zip || '',
-        Responsive:       true,
-        ShowResultsOnMap: true,
-        Theme:            'mondialrelay',
-        OnParcelShopSelected: function(data) {
-          // Transmettre au module ES via un événement custom
-          document.dispatchEvent(new CustomEvent('mr:selected', {
-            detail: {
-              id:   data.ID,
-              name: data.Nom,
-              addr: [data.Adresse1, data.Adresse2].filter(Boolean).join(', '),
-              city: data.Ville,
-              zip:  data.CP,
-            }
-          }));
-        },
-      });
-    };
-
-    window.searchMRWidget = function(zip) {
-      if (!mrWidgetInitialized) {
-        window.initMRWidget(zip);
-      } else {
-        $('#Zone_Widget').MR_ParcelShopPicker('search', zip, 'FR');
-      }
-    };
-  </script>
+  <!-- Leaflet (carte points relais) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <!-- App modules -->
   <script type="module" src="js/app.js"></script>

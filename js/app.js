@@ -151,11 +151,6 @@ function initCheckout() {
 let gMap = null;
 let gMarkers = [];
 let gInfoWindow = null;
-let googleMapsReady = false;
-
-window.initGoogleMaps = function() {
-  googleMapsReady = true;
-};
 
 async function searchRelayPoints() {
   const zip = document.getElementById('relay_zip').value.trim();
@@ -172,7 +167,7 @@ async function searchRelayPoints() {
   btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Recherche…';
 
   // Attendre que Google Maps soit prêt
-  await waitForGoogleMaps();
+  await waitForGoogle();
 
   // Géocoder le code postal pour obtenir les coordonnées
   const geocoder = new google.maps.Geocoder();
@@ -191,11 +186,11 @@ async function searchRelayPoints() {
   });
 }
 
-function waitForGoogleMaps() {
+function waitForGoogle() {
   return new Promise(resolve => {
-    if (googleMapsReady && window.google) { resolve(); return; }
+    if (window.google && window.google.maps) { resolve(); return; }
     const interval = setInterval(() => {
-      if (googleMapsReady && window.google) { clearInterval(interval); resolve(); }
+      if (window.google && window.google.maps) { clearInterval(interval); resolve(); }
     }, 100);
   });
 }

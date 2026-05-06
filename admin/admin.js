@@ -225,7 +225,14 @@ async function loadOrders() {
     return;
   }
 
-  tbody.innerHTML = orders.map(o => `
+  tbody.innerHTML = orders.map(o => {
+    const addr = o.shipping_address || {};
+    const relayLine = addr.relay_name
+      ? `<div style="font-size:12px;font-weight:600;color:var(--dark)">${esc(addr.relay_name)}</div>
+         <div style="font-size:11px;color:var(--muted)">${esc(addr.zip||'')} ${esc(addr.city||'')}</div>`
+      : `<div style="font-size:11px;color:var(--muted)">${esc(addr.line1||'—')}</div>
+         <div style="font-size:11px;color:var(--muted)">${esc(addr.zip||'')} ${esc(addr.city||'')}</div>`;
+    return `
     <tr>
       <td><code style="font-size:11px">#${o.id.slice(0,8).toUpperCase()}</code></td>
       <td>
@@ -235,6 +242,7 @@ async function loadOrders() {
       <td style="font-size:11.5px;color:var(--mid);max-width:180px">
         ${(o.items || []).map(i => `${esc(i.name)} ×${i.qty}`).join(', ')}
       </td>
+      <td style="max-width:160px">${relayLine}</td>
       <td style="font-family:'Cormorant Garamond',serif;font-size:17px;color:var(--gold-dark)">${fmt(o.total)} €</td>
       <td>${o.payment_status ? statusBadge(o.payment_status) : '<span style="color:var(--muted);font-size:11px">—</span>'}</td>
       <td>
@@ -246,8 +254,8 @@ async function loadOrders() {
       </td>
       <td style="font-size:11px;color:var(--muted)">${fmtDate(o.created_at)}</td>
       <td><button class="btn-icon" onclick='openOrderModal(${JSON.stringify(o).replace(/'/g,"&#39;")})'>→</button></td>
-    </tr>
-  `).join('');
+    </tr>`
+  }).join('');
 
   // Search + filter wiring (once)
   const searchEl = document.getElementById('orderSearch');
@@ -298,10 +306,12 @@ window.openOrderModal = function(order) {
         ${order.customer_phone ? `<p class="detail-line">${esc(order.customer_phone)}</p>` : ''}
       </div>
       <div class="detail-section">
-        <p class="detail-section-title">Livraison</p>
+        <p class="detail-section-title">Point Relais Mondial Relay</p>
+        ${addr.relay_name ? `<p class="detail-line"><strong style="font-size:14px">${esc(addr.relay_name)}</strong></p>` : ''}
         <p class="detail-line">${esc(addr.line1 || '—')}</p>
         <p class="detail-line">${esc(addr.zip || '')} ${esc(addr.city || '')}</p>
-        <p class="detail-line">${esc(addr.country || '')}</p>
+        <p class="detail-line">${esc(addr.country || 'France')}</p>
+        <a href="https://www.google.com/maps/search/${encodeURIComponent((addr.relay_name||'') + ' ' + (addr.line1||'') + ' ' + (addr.zip||'') + ' ' + (addr.city||''))}" target="_blank" rel="noopener" style="font-size:11px;color:var(--gold-dark);text-decoration:underline;margin-top:4px;display:inline-block">Voir sur Maps ↗</a>
       </div>
     </div>
     <div class="detail-section" style="margin-bottom:1rem">

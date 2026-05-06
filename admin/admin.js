@@ -567,7 +567,7 @@ window.openRequestModal = function(req) {
       </select>
     </div>
     <div style="margin-top:1rem">
-      <a href="mailto:${esc(req.email)}?subject=Votre demande personnalisée — La Carte Royale"
+      <a href="mailto:${esc(req.email)}?subject=Votre demande personnalisée —  Em'shop"
          class="btn-primary sm" style="display:inline-block;text-decoration:none">
         ✉️ Répondre par email
       </a>

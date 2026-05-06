@@ -135,145 +135,14 @@ function initCheckout() {
     await handlePlaceOrder();
   });
 
-  // ── Recherche point relais Mondial Relay ──────────────────
-  document.getElementById('relaySearchBtn').addEventListener('click', searchRelayPoints);
-  document.getElementById('relay_zip').addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); searchRelayPoints(); }
-  });
-  document.getElementById('relayChangeBtn').addEventListener('click', () => {
-    document.getElementById('relaySelected').classList.add('hidden');
-    document.getElementById('relayList').classList.remove('hidden');
-    clearSelectedRelay();
-  });
-}
-
-// ── Points Relais Mondial Relay — via proxy Vercel ────────────────────
-// Le WebService SOAP de Mondial Relay bloque les requêtes CORS navigateur.
-// On passe par /api/relay-points (Vercel Serverless Function) qui fait
-// la requête SOAP côté serveur et retourne du JSON propre.
-
-/**
- * Récupère les points relais proches d'un code postal.
- * @param {string} zip  Code postal (5 chiffres)
- * @returns {Promise<Array>} Liste de points relais
- */
-async function fetchRelayPoints(zip) {
-  const res = await fetch(`/api/relay-points?zip=${encodeURIComponent(zip)}`);
-  if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  return data; // { points, center, warning? }
-}
-
-// Carte Leaflet inline
-let leafMap = null;
-let leafMarkers = [];
-
-function initLeafletMap(lat, lon) {
-  const wrap = document.getElementById('relayMapWrap');
-  wrap.style.display = '';
-  wrap.classList.remove('hidden');
-
-  leafMarkers.forEach(m => m.remove());
-  leafMarkers = [];
-
-  if (!leafMap) {
-    leafMap = L.map('relayMap', { zoomControl: true }).setView([lat, lon], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19,
-    }).addTo(leafMap);
-  } else {
-    leafMap.setView([lat, lon], 13);
-  }
-}
-
-function renderRelayList(points) {
-  const listEl = document.getElementById('relayList');
-  listEl.innerHTML = '';
-
-  points.forEach((p, i) => {
-    const markerIcon = L.divIcon({
-      className: '',
-      html: `<div style="width:26px;height:26px;background:#1a1612;border:2px solid #c9a96e;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#c9a96e">${i+1}</div>`,
-      iconSize: [26, 26], iconAnchor: [13, 13],
-    });
-    const marker = L.marker([p.lat, p.lon], { icon: markerIcon }).addTo(leafMap);
-    marker.bindPopup(`<strong>${p.name}</strong><br><span style="font-size:12px;color:#555">${p.addr}, ${p.city}</span>`);
-    leafMarkers.push(marker);
-
-    const item = document.createElement('div');
-    item.className = 'relay-item';
-    item.innerHTML = `
-      <div class="relay-item-num">${i+1}</div>
-      <div class="relay-item-info">
-        <strong>${p.name}</strong>
-        <span>${p.addr}${p.city ? (p.addr ? ', ' : '') + p.city : ''}</span>
-      </div>
-      <button type="button" class="relay-item-btn">Choisir</button>`;
-    item.querySelector('.relay-item-btn').addEventListener('click', () => selectRelay(p));
-    item.addEventListener('mouseenter', () => { leafMap.panTo([p.lat, p.lon]); marker.openPopup(); });
-    listEl.appendChild(item);
-  });
-}
-
-/**
- * Lance la recherche de points relais via le WebService Mondial Relay.
- */
-async function searchRelayPoints() {
-  const zip   = document.getElementById('relay_zip').value.trim();
-  const errEl = document.getElementById('relayError');
-  errEl.textContent = '';
-
-  if (!/^\d{4,5}$/.test(zip)) {
-    errEl.textContent = 'Entrez un code postal valide (ex. 44150)';
-    return;
-  }
-
-  const btn = document.getElementById('relaySearchBtn');
-  btn.disabled = true;
-
-  try {
-    const { points, center, warning } = await fetchRelayPoints(zip);
-
-    // Toujours afficher la carte, centrée sur le CP
-    const mapCenter = (points.length ? points[0] : center) || { lat: 46.8, lon: 2.3 };
-    initLeafletMap(mapCenter.lat, mapCenter.lon);
-
-    if (!points.length) {
-      errEl.textContent = warning || 'Aucun point relais trouvé. Essayez un code postal voisin.';
-      return;
+  // Synchroniser les champs visibles → champs cachés avant soumission
+  ['name', 'addr', 'city', 'zip'].forEach(key => {
+    const input = document.getElementById(`o_relay_${key}_input`);
+    const hidden = document.getElementById(`o_relay_${key}`);
+    if (input && hidden) {
+      input.addEventListener('input', () => { hidden.value = input.value.trim(); });
     }
-
-    renderRelayList(points);
-
-  } catch (err) {
-    console.error(err);
-    errEl.textContent = 'Erreur lors de la recherche. Vérifiez votre connexion et réessayez.';
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-function selectRelay(relay) {
-  document.getElementById('o_relay_id').value   = relay.id;
-  document.getElementById('o_relay_name').value = relay.name;
-  document.getElementById('o_relay_addr').value = relay.addr;
-  document.getElementById('o_relay_city').value = relay.city;
-  document.getElementById('o_relay_zip').value  = relay.zip;
-
-  document.getElementById('relaySelectedName').textContent = relay.name;
-  document.getElementById('relaySelectedAddr').textContent = `${relay.addr}${relay.city ? ', ' + relay.city : ''}`;
-  document.getElementById('relaySelected').classList.remove('hidden');
-  document.getElementById('relayMapWrap').classList.add('hidden');
-  document.getElementById('relayError').textContent = '';
-}
-
-function clearSelectedRelay() {
-  ['o_relay_id','o_relay_name','o_relay_addr','o_relay_city','o_relay_zip'].forEach(id => {
-    document.getElementById(id).value = '';
   });
-  document.getElementById('relayMapWrap').classList.remove('hidden');
 }
 
 function openCheckoutModal() {
@@ -294,13 +163,23 @@ async function handlePlaceOrder() {
   ]);
   if (!valid) return;
 
-  // Vérifier qu'un point relais est bien sélectionné
-  const relayId = document.getElementById('o_relay_id').value;
-  if (!relayId) {
-    document.getElementById('relayError').textContent = 'Veuillez sélectionner un point relais.';
-    document.getElementById('relay_zip').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // Vérifier que les champs relais sont remplis
+  const relayName = document.getElementById('o_relay_name_input').value.trim();
+  const relayAddr = document.getElementById('o_relay_addr_input').value.trim();
+  const relayZip  = document.getElementById('o_relay_zip_input').value.trim();
+  const relayCity = document.getElementById('o_relay_city_input').value.trim();
+
+  if (!relayName || !relayAddr || !relayZip || !relayCity) {
+    document.getElementById('relayError').textContent = 'Veuillez renseigner l\'adresse complète du point relais.';
+    document.getElementById('o_relay_name_input').scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
+
+  // Copier dans les champs cachés
+  document.getElementById('o_relay_name').value = relayName;
+  document.getElementById('o_relay_addr').value = relayAddr;
+  document.getElementById('o_relay_zip').value  = relayZip;
+  document.getElementById('o_relay_city').value = relayCity;
 
   UI.setLoading('placeBtn', true);
 

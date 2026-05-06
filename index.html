@@ -280,40 +280,42 @@
           <div class="field"><label>Email <span class="req">*</span></label><input type="email" id="o_email" placeholder="marie@email.com" required /></div>
           <div class="field"><label>Téléphone</label><input type="tel" id="o_phone" placeholder="+33 6 00 00 00 00" /></div>
 
-          <p class="modal-section">Livraison — Point Relais</p>
+          <p class="modal-section">Livraison — Point Relais Mondial Relay</p>
 
-          <!-- Recherche par code postal -->
-          <div class="relay-search-row">
-            <div class="field" style="flex:1;margin-bottom:0">
-              <label>Code postal <span class="req">*</span></label>
-              <input type="text" id="relay_zip" placeholder="ex. 44150" maxlength="5" />
+          <!-- Étape 1 : trouver un relais -->
+          <div class="relay-finder-hint">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>Trouvez d'abord votre point relais sur la carte Mondial Relay, puis copiez son adresse ci-dessous.</span>
+            <a href="https://www.mondialrelay.fr/trouver-le-point-relais/" target="_blank" rel="noopener" class="relay-map-link">
+              Ouvrir la carte ↗
+            </a>
+          </div>
+
+          <!-- Étape 2 : saisir l'adresse du relais -->
+          <div class="relay-manual-fields">
+            <div class="field">
+              <label for="o_relay_name_input">Nom du point relais <span class="req">*</span></label>
+              <input type="text" id="o_relay_name_input" placeholder="ex. TABAC PRESSE DU CENTRE" autocomplete="off" />
+              <span class="field-err" id="relayError"></span>
             </div>
-            <button type="button" class="btn-relay-search" id="relaySearchBtn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              Rechercher
-            </button>
-          </div>
-          <div id="relayError" class="field-err" style="margin-top:4px"></div>
-
-          <!-- Carte Google Maps -->
-          <!-- Zone widget Mondial Relay v4 (s'affiche après clic Rechercher) -->
-          <div id="relayMapWrap" class="relay-map-wrap hidden">
-            <div id="relayMap" class="relay-map"></div>
-            <div id="relayList" class="relay-list"></div>
-          </div>
-
-          <!-- Point relais sélectionné -->
-          <div id="relaySelected" class="relay-selected hidden">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            <div>
-              <strong id="relaySelectedName"></strong>
-              <span id="relaySelectedAddr"></span>
+            <div class="field">
+              <label for="o_relay_addr_input">Adresse <span class="req">*</span></label>
+              <input type="text" id="o_relay_addr_input" placeholder="ex. 12 RUE DU GENERAL DE GAULLE" autocomplete="off" />
             </div>
-            <button type="button" class="relay-change-btn" id="relayChangeBtn">Changer</button>
+            <div class="form-row">
+              <div class="field">
+                <label for="o_relay_zip_input">Code postal <span class="req">*</span></label>
+                <input type="text" id="o_relay_zip_input" placeholder="44150" maxlength="5" />
+              </div>
+              <div class="field">
+                <label for="o_relay_city_input">Ville <span class="req">*</span></label>
+                <input type="text" id="o_relay_city_input" placeholder="ANCENIS" />
+              </div>
+            </div>
           </div>
 
-          <!-- Champs cachés -->
-          <input type="hidden" id="o_relay_id" />
+          <!-- Champs cachés (compatibilité BDD) -->
+          <input type="hidden" id="o_relay_id" value="MANUEL" />
           <input type="hidden" id="o_relay_name" />
           <input type="hidden" id="o_relay_addr" />
           <input type="hidden" id="o_relay_city" />
@@ -372,9 +374,7 @@
     })();
   </script>
 
-  <!-- Leaflet (carte points relais) -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- (aucune dépendance externe pour les points relais) -->
 
   <!-- App modules -->
   <script type="module" src="js/app.js"></script>

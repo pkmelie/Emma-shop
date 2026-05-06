@@ -247,9 +247,9 @@ input, select, textarea {
 /* ── Skeletons ───────────────────────────────────────── */
 .skeleton-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1px;
-  background: var(--cream2);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 320px));
+  justify-content: center;
+  gap: 24px;
 }
 @keyframes shimmer {
   0%   { background-position: -600px 0; }
@@ -265,9 +265,9 @@ input, select, textarea {
 /* ── Grille produits ─────────────────────────────────── */
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1px;
-  background: var(--cream2);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 320px));
+  justify-content: center;
+  gap: 24px;
 }
 
 .product-card {

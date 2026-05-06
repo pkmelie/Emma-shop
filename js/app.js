@@ -147,73 +147,22 @@ function initCheckout() {
   });
 }
 
-// ── Points Relais Mondial Relay — WebService SOAP ────────────────────
-// Appel direct au WebService officiel Mondial Relay (SOAP/XML).
-// Mode démo : Brand = "BDTEST  " (espace à la fin requis).
-// En production : remplacer Brand + Enseigne par votre compte Mondial Relay.
-// Doc WS : https://www.mondialrelay.fr/media/108937/Solution_Technique_V4.6.pdf
-
-const MR_WS_URL   = 'https://www.mondialrelay.fr/WebService/Web_Services.asmx';
-const MR_BRAND    = 'BDTEST  '; // ← remplacer par votre code client (11 chars, espaces compris)
-const MR_ENSEIGNE = 'CC_DEMO '; // ← remplacer par votre enseigne
+// ── Points Relais Mondial Relay — via proxy Vercel ────────────────────
+// Le WebService SOAP de Mondial Relay bloque les requêtes CORS navigateur.
+// On passe par /api/relay-points (Vercel Serverless Function) qui fait
+// la requête SOAP côté serveur et retourne du JSON propre.
 
 /**
- * Appelle le WebService Mondial Relay pour obtenir les points relais proches.
+ * Récupère les points relais proches d'un code postal.
  * @param {string} zip  Code postal (5 chiffres)
  * @returns {Promise<Array>} Liste de points relais
  */
 async function fetchRelayPoints(zip) {
-  const body = `<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-               xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Body>
-    <WSI_RecherchePointRelais xmlns="http://www.mondialrelay.fr/webservice/">
-      <Enseigne>${MR_ENSEIGNE}</Enseigne>
-      <Pays>FR</Pays>
-      <CP>${zip}</CP>
-      <Nombre>7</Nombre>
-      <DelaiEnvoi>0</DelaiEnvoi>
-      <RayonRecherche>20</RayonRecherche>
-      <TypeActivite>EXP</TypeActivite>
-    </WSI_RecherchePointRelais>
-  </soap:Body>
-</soap:Envelope>`;
-
-  const res = await fetch(MR_WS_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'text/xml; charset=utf-8',
-      'SOAPAction':   'http://www.mondialrelay.fr/webservice/WSI_RecherchePointRelais',
-    },
-    body,
-  });
-
-  if (!res.ok) throw new Error(`WS HTTP ${res.status}`);
-  const xml  = await res.text();
-  const doc  = new DOMParser().parseFromString(xml, 'text/xml');
-  const pts  = [...doc.querySelectorAll('PointRelais_Details')];
-
-  return pts.map(p => ({
-    id:   p.querySelector('Num')?.textContent?.trim()   || '',
-    name: p.querySelector('LgAdr1')?.textContent?.trim() || 'Point Relais',
-    addr: [
-      p.querySelector('LgAdr3')?.textContent?.trim(),
-      p.querySelector('LgAdr4')?.textContent?.trim(),
-    ].filter(Boolean).join(', '),
-    city: p.querySelector('Ville')?.textContent?.trim()  || '',
-    zip:  p.querySelector('CP')?.textContent?.trim()     || zip,
-    lat:  parseFloat(p.querySelector('Latitude')?.textContent?.replace(',', '.') || '0'),
-    lon:  parseFloat(p.querySelector('Longitude')?.textContent?.replace(',', '.') || '0'),
-    hours: {
-      lun: p.querySelector('Horaires_Lundi')?.textContent?.trim()    || '',
-      mar: p.querySelector('Horaires_Mardi')?.textContent?.trim()    || '',
-      mer: p.querySelector('Horaires_Mercredi')?.textContent?.trim() || '',
-      jeu: p.querySelector('Horaires_Jeudi')?.textContent?.trim()    || '',
-      ven: p.querySelector('Horaires_Vendredi')?.textContent?.trim() || '',
-      sam: p.querySelector('Horaires_Samedi')?.textContent?.trim()   || '',
-    },
-  }));
+  const res = await fetch(`/api/relay-points?zip=${encodeURIComponent(zip)}`);
+  if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
+  const { points, error } = await res.json();
+  if (error) throw new Error(error);
+  return points;
 }
 
 // Carte Leaflet inline

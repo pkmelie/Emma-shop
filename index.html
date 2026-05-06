@@ -280,13 +280,44 @@
           <div class="field"><label>Email <span class="req">*</span></label><input type="email" id="o_email" placeholder="marie@email.com" required /></div>
           <div class="field"><label>Téléphone</label><input type="tel" id="o_phone" placeholder="+33 6 00 00 00 00" /></div>
 
-          <p class="modal-section">Livraison</p>
-          <div class="field"><label>Adresse <span class="req">*</span></label><input type="text" id="o_addr" placeholder="12 rue des Artisans" required /></div>
-          <div class="form-row">
-            <div class="field"><label>Ville <span class="req">*</span></label><input type="text" id="o_city" placeholder="Paris" required /></div>
-            <div class="field"><label>Code postal <span class="req">*</span></label><input type="text" id="o_zip" placeholder="75001" required /></div>
+          <p class="modal-section">Livraison — Point Relais</p>
+
+          <!-- Recherche par code postal -->
+          <div class="relay-search-row">
+            <div class="field" style="flex:1;margin-bottom:0">
+              <label>Code postal <span class="req">*</span></label>
+              <input type="text" id="relay_zip" placeholder="ex. 44150" maxlength="5" />
+            </div>
+            <button type="button" class="btn-relay-search" id="relaySearchBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Rechercher
+            </button>
           </div>
-          <div class="field"><label>Pays</label><input type="text" id="o_country" value="France" /></div>
+          <div id="relayError" class="field-err" style="margin-top:4px"></div>
+
+          <!-- Carte Google Maps -->
+          <div id="relayMapWrap" class="relay-map-wrap hidden">
+            <div id="relayMap" class="relay-map"></div>
+            <div id="relayList" class="relay-list"></div>
+          </div>
+
+          <!-- Point relais sélectionné -->
+          <div id="relaySelected" class="relay-selected hidden">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <div>
+              <strong id="relaySelectedName"></strong>
+              <span id="relaySelectedAddr"></span>
+            </div>
+            <button type="button" class="relay-change-btn" id="relayChangeBtn">Changer</button>
+          </div>
+
+          <!-- Champs cachés -->
+          <input type="hidden" id="o_relay_id" />
+          <input type="hidden" id="o_relay_name" />
+          <input type="hidden" id="o_relay_addr" />
+          <input type="hidden" id="o_relay_city" />
+          <input type="hidden" id="o_relay_zip" />
+          <input type="hidden" id="o_country" value="France" />
 
           <p class="modal-section">Récapitulatif</p>
           <div id="orderSummary" class="order-summary"></div>
@@ -341,6 +372,7 @@
   </script>
 
   <!-- App modules -->
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXmdTd_9ijWymb-kBxR1KqAPJeo9pH0N4&libraries=places&callback=initGoogleMaps"></script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

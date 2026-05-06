@@ -1,93 +1,94 @@
 /**
- * api/relay-points.js — Proxy Vercel pour le WebService SOAP Mondial Relay
+ * api/relay-points.js — Proxy Vercel pour les points relais
  *
- * La requête SOAP est faite côté serveur (pas de CORS).
+ * 1. Géocode le code postal via Nominatim (gratuit, sans clé)
+ * 2. Cherche les points relais via Overpass API (données OSM)
+ * 3. Retourne du JSON propre au front
+ *
  * GET /api/relay-points?zip=44160
  */
 
-const MR_WS_URL = 'https://www.mondialrelay.fr/WebService/Web_Services.asmx';
-const MR_ENSEIGNE = 'CC_DEMO '; // ← remplacer par votre enseigne Mondial Relay
+const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
+const OVERPASS  = 'https://overpass-api.de/api/interpreter';
+const UA        = 'emma-shop/1.0 (contact@emma-shop.fr)';
 
 export default async function handler(req, res) {
-  // CORS — autoriser votre domaine Vercel
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   const { zip } = req.query;
-
   if (!zip || !/^\d{4,5}$/.test(zip)) {
     return res.status(400).json({ error: 'Code postal invalide' });
   }
 
-  const soapBody = `<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-               xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Body>
-    <WSI_RecherchePointRelais xmlns="http://www.mondialrelay.fr/webservice/">
-      <Enseigne>${MR_ENSEIGNE}</Enseigne>
-      <Pays>FR</Pays>
-      <CP>${zip}</CP>
-      <Nombre>7</Nombre>
-      <DelaiEnvoi>0</DelaiEnvoi>
-      <RayonRecherche>20</RayonRecherche>
-      <TypeActivite>EXP</TypeActivite>
-    </WSI_RecherchePointRelais>
-  </soap:Body>
-</soap:Envelope>`;
-
   try {
-    const mrRes = await fetch(MR_WS_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/xml; charset=utf-8',
-        'SOAPAction': 'http://www.mondialrelay.fr/webservice/WSI_RecherchePointRelais',
-      },
-      body: soapBody,
-    });
-
-    if (!mrRes.ok) {
-      return res.status(502).json({ error: `Mondial Relay WS error: ${mrRes.status}` });
+    // 1. Géocoder le code postal
+    const geoRes = await fetch(
+      `${NOMINATIM}?postalcode=${zip}&country=France&format=json&limit=1`,
+      { headers: { 'User-Agent': UA, 'Accept-Language': 'fr' } }
+    );
+    const geoData = await geoRes.json();
+    if (!geoData.length) {
+      return res.status(404).json({ error: 'Code postal introuvable', points: [] });
     }
 
-    const xml = await mrRes.text();
+    const lat = parseFloat(geoData[0].lat);
+    const lon = parseFloat(geoData[0].lon);
 
-    // Parser le XML côté serveur avec regex (pas de DOM côté Node)
-    const points = [];
-    const matches = xml.matchAll(/<PointRelais_Details>([\s\S]*?)<\/PointRelais_Details>/g);
+    // 2. Overpass — tags OSM couvrant Mondial Relay et points relais colis
+    const query = `[out:json][timeout:20];
+(
+  node["brand"~"Mondial Relay",i](around:8000,${lat},${lon});
+  node["operator"~"Mondial Relay",i](around:8000,${lat},${lon});
+  node["name"~"Mondial Relay",i](around:8000,${lat},${lon});
+  node["amenity"="parcel_locker"](around:8000,${lat},${lon});
+  node["parcel_pickup"="yes"](around:8000,${lat},${lon});
+  node["delivery:parcel_pickup"="yes"](around:8000,${lat},${lon});
+);
+out body 15;`;
 
-    for (const match of matches) {
-      const block = match[1];
-      const get = (tag) => {
-        const m = block.match(new RegExp(`<${tag}>([^<]*)<\/${tag}>`));
-        return m ? m[1].trim() : '';
-      };
+    const ovRes = await fetch(OVERPASS, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA },
+      body: 'data=' + encodeURIComponent(query),
+    });
 
-      const lat = parseFloat(get('Latitude').replace(',', '.'));
-      const lon = parseFloat(get('Longitude').replace(',', '.'));
+    if (!ovRes.ok) throw new Error(`Overpass HTTP ${ovRes.status}`);
 
-      if (!lat || !lon) continue;
+    const ovData = await ovRes.json();
+    const elements = ovData.elements || [];
 
-      points.push({
-        id:   get('Num'),
-        name: get('LgAdr1') || get('LgAdr2') || 'Point Relais',
-        addr: [get('LgAdr3'), get('LgAdr4')].filter(Boolean).join(', '),
-        city: get('Ville'),
-        zip:  get('CP'),
-        lat,
-        lon,
+    // 3. Formater + dédupliquer
+    const seen = new Set();
+    const points = elements
+      .filter(e => e.lat && e.lon)
+      .map(e => {
+        const t    = e.tags || {};
+        const name = t.name || t.brand || t.operator || 'Point Relais';
+        const addr = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ');
+        const city = t['addr:city'] || '';
+        const pzip = t['addr:postcode'] || zip;
+        const key  = `${name}|${addr}|${city}`;
+        if (seen.has(key)) return null;
+        seen.add(key);
+        return { id: `osm-${e.id}`, name, addr, city, zip: pzip, lat: e.lat, lon: e.lon };
+      })
+      .filter(Boolean)
+      .slice(0, 8);
+
+    if (!points.length) {
+      return res.status(200).json({
+        points: [],
+        center: { lat, lon },
+        warning: 'Aucun point relais trouvé dans cette zone. Essayez un code postal voisin.',
       });
     }
 
-    res.status(200).json({ points });
+    return res.status(200).json({ points, center: { lat, lon } });
 
   } catch (err) {
     console.error('relay-points error:', err);
-    res.status(500).json({ error: 'Erreur serveur' });
+    return res.status(500).json({ error: 'Erreur serveur : ' + err.message });
   }
 }

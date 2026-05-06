@@ -160,9 +160,9 @@ function initCheckout() {
 async function fetchRelayPoints(zip) {
   const res = await fetch(`/api/relay-points?zip=${encodeURIComponent(zip)}`);
   if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
-  const { points, error } = await res.json();
-  if (error) throw new Error(error);
-  return points;
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data; // { points, center, warning? }
 }
 
 // Carte Leaflet inline
@@ -234,15 +234,17 @@ async function searchRelayPoints() {
   btn.disabled = true;
 
   try {
-    const points = await fetchRelayPoints(zip);
+    const { points, center, warning } = await fetchRelayPoints(zip);
+
+    // Toujours afficher la carte, centrée sur le CP
+    const mapCenter = (points.length ? points[0] : center) || { lat: 46.8, lon: 2.3 };
+    initLeafletMap(mapCenter.lat, mapCenter.lon);
 
     if (!points.length) {
-      errEl.textContent = 'Aucun point relais trouvé pour ce code postal. Essayez un code postal voisin.';
+      errEl.textContent = warning || 'Aucun point relais trouvé. Essayez un code postal voisin.';
       return;
     }
 
-    // Centre la carte sur le 1er résultat
-    initLeafletMap(points[0].lat, points[0].lon);
     renderRelayList(points);
 
   } catch (err) {

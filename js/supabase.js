@@ -52,7 +52,7 @@ export async function createOrder(customer, items) {
         type:      'point_relais',
         relay_id:  customer.relayId,
         relay_name: customer.relayName,
-        
+        line1:     customer.address,
         city:      customer.city,
         zip:       customer.zip,
         country:   customer.country || 'France',

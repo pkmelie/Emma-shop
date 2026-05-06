@@ -296,10 +296,9 @@
           <div id="relayError" class="field-err" style="margin-top:4px"></div>
 
           <!-- Carte Google Maps -->
-          <!-- Le widget Mondial Relay s'ouvre en popup lors du clic sur Rechercher -->
-          <div id="relayMapWrap" class="relay-map-wrap hidden" style="display:none">
-            <div id="relayMap" class="relay-map"></div>
-            <div id="relayList" class="relay-list"></div>
+          <!-- Zone widget Mondial Relay v4 (s'affiche après clic Rechercher) -->
+          <div id="relayMapWrap" class="relay-map-wrap hidden">
+            <div id="Zone_Widget"></div>
           </div>
 
           <!-- Point relais sélectionné -->
@@ -372,11 +371,12 @@
     })();
   </script>
 
-  <!-- Widget officiel Mondial Relay (points relais, données complètes) -->
-  <script src="https://www.mondialrelay.fr/WebWidget/script/jquery-1.11.3.min.js"></script>
-  <script src="https://www.mondialrelay.fr/WebWidget/script/jquery-ui-1.11.3.min.js"></script>
-  <link rel="stylesheet" href="https://www.mondialrelay.fr/WebWidget/css/jquery-ui-1.11.3.min.css" />
-  <script src="https://www.mondialrelay.fr/WebWidget/script/widget-v3.js"></script>
+  <!-- Widget officiel Mondial Relay v4 (jQuery plugin, données complètes) -->
+  <!-- Doc : https://widget.mondialrelay.com/ -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <link rel="stylesheet" href="//unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="//unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://widget.mondialrelay.com/parcelshop-picker/jquery.mondialrelay.parcelshoppicker.min.js"></script>
 
   <!-- App modules -->
   <script type="module" src="js/app.js"></script>

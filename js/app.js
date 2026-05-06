@@ -147,15 +147,45 @@ function initCheckout() {
   });
 }
 
-// ── Widget officiel Mondial Relay — Points Relais ────────────────────
-// Utilise le Web Widget officiel Mondial Relay (données complètes et fiables)
-// Doc : https://www.mondialrelay.fr/media/1199/guide-integration-widget-2-0.pdf
+// ── Widget officiel Mondial Relay v4 — Points Relais ────────────────────
+// Doc : https://widget.mondialrelay.com/
+// Le widget jQuery v4 s'initialise sur une DIV inline (pas de popup).
+// Brand "BDTEST " = compte de démo officiel Mondial Relay (remplacer par votre code client).
 
-let mrWidgetReady = false;
+let mrWidgetInitialized = false;
 
 /**
- * Lance la recherche via le widget officiel Mondial Relay.
- * Le widget s'ouvre en popup et rappelle onMRParcelShopSelected() lors du choix.
+ * Initialise le widget Mondial Relay dans #Zone_Widget.
+ * Appelé une seule fois au premier clic sur "Rechercher".
+ */
+function initMRWidget() {
+  if (mrWidgetInitialized) return;
+  mrWidgetInitialized = true;
+
+  .MR_ParcelShopPicker({
+    Target:    '#o_relay_id',          // champ hidden qui reçoit l'ID du point relais
+    Brand:     'BDTEST  ',             // ← remplacer par votre code client Mondial Relay
+    Country:   'FR',
+    PostCode:  .val(),
+    Responsive: true,
+    ShowResultsOnMap: true,
+    Theme:     'mondialrelay',
+    OnParcelShopSelected: function(data) {
+      // data = objet avec ID, Nom, Adresse1, Adresse2, Ville, CP, Pays...
+      const relay = {
+        id:   data.ID,
+        name: data.Nom,
+        addr: [data.Adresse1, data.Adresse2].filter(Boolean).join(', '),
+        city: data.Ville,
+        zip:  data.CP,
+      };
+      selectRelay(relay);
+    },
+  });
+}
+
+/**
+ * Lance la recherche : initialise le widget si besoin, puis met à jour le code postal.
  */
 function searchRelayPoints() {
   const zip   = document.getElementById('relay_zip').value.trim();
@@ -167,67 +197,18 @@ function searchRelayPoints() {
     return;
   }
 
-  // Masquer l'ancien affichage éventuel
-  document.getElementById('relayMapWrap').classList.add('hidden');
+  // Afficher la zone widget
+  const wrap = document.getElementById('relayMapWrap');
+  wrap.style.display = '';
+  wrap.classList.remove('hidden');
 
-  // Ouvrir le widget Mondial Relay
-  try {
-    if (typeof MR_WW_Bouton_Widget !== 'undefined') {
-      // Widget v2 chargé
-      MR_WW_Bouton_Widget(
-        zip,           // Code postal de départ
-        'FR',          // Pays
-        '',            // Poids (vide = ignoré)
-        'MR',          // Type livraison : MR = Point Relais
-        '',            // Nb de jours ouvrés
-        null           // Callback (null = utilise onMRParcelShopSelected)
-      );
-    } else {
-      // Fallback : widget v1 ou non chargé — ouvrir la page Mondial Relay
-      errEl.textContent = 'Widget Mondial Relay non disponible. Rechargez la page.';
-    }
-  } catch (e) {
-    errEl.textContent = 'Impossible d\'ouvrir le widget Mondial Relay.';
-    console.error(e);
+  if (!mrWidgetInitialized) {
+    initMRWidget();
+  } else {
+    // Relancer la recherche avec le nouveau code postal
+    .MR_ParcelShopPicker('search', zip, 'FR');
   }
 }
-
-/**
- * Callback appelé automatiquement par le widget Mondial Relay quand
- * le client choisit un point relais.
- * Les paramètres correspondent aux champs retournés par le widget v2.
- */
-window.onMRParcelShopSelected = function(
-  mr_Relay_ID,
-  mr_Relay_Nom,
-  mr_Relay_Adr1,
-  mr_Relay_Adr2,
-  mr_Relay_Adr3,
-  mr_Relay_Ville,
-  mr_Relay_CP,
-  mr_Relay_Pays,
-  mr_Relay_Tel,
-  mr_Relay_Lat,
-  mr_Relay_Long,
-  mr_Relay_Horaires_lundi,
-  mr_Relay_Horaires_mardi,
-  mr_Relay_Horaires_mercredi,
-  mr_Relay_Horaires_jeudi,
-  mr_Relay_Horaires_vendredi,
-  mr_Relay_Horaires_samedi,
-  mr_Relay_Horaires_dimanche,
-  mr_Relay_Type,
-  mr_Relay_Activity
-) {
-  const relay = {
-    id:   mr_Relay_ID,
-    name: mr_Relay_Nom,
-    addr: [mr_Relay_Adr1, mr_Relay_Adr2, mr_Relay_Adr3].filter(Boolean).join(', '),
-    city: mr_Relay_Ville,
-    zip:  mr_Relay_CP,
-  };
-  selectRelay(relay);
-};
 
 function selectRelay(relay) {
   document.getElementById('o_relay_id').value   = relay.id;

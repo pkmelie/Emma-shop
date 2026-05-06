@@ -134,19 +134,17 @@ function initCheckout() {
     e.preventDefault();
     await handlePlaceOrder();
   });
-
-  // Synchroniser les champs visibles → champs cachés avant soumission
-  ['name', 'addr', 'city', 'zip'].forEach(key => {
-    const input = document.getElementById(`o_relay_${key}_input`);
-    const hidden = document.getElementById(`o_relay_${key}`);
-    if (input && hidden) {
-      input.addEventListener('input', () => { hidden.value = input.value.trim(); });
-    }
-  });
 }
 
 function openCheckoutModal() {
   UI.renderOrderSummary(Cart.getItems());
+  // Remettre les champs relais à zéro à chaque ouverture
+  ['o_relay_name_input','o_relay_addr_input','o_relay_zip_input','o_relay_city_input'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const errEl = document.getElementById('relayError');
+  if (errEl) errEl.textContent = '';
   document.getElementById('checkoutModal').classList.remove('hidden');
   document.getElementById('checkoutForm').style.display = '';
   document.getElementById('orderSuccess')?.classList.add('hidden');
@@ -175,12 +173,6 @@ async function handlePlaceOrder() {
     return;
   }
 
-  // Copier dans les champs cachés
-  document.getElementById('o_relay_name').value = relayName;
-  document.getElementById('o_relay_addr').value = relayAddr;
-  document.getElementById('o_relay_zip').value  = relayZip;
-  document.getElementById('o_relay_city').value = relayCity;
-
   UI.setLoading('placeBtn', true);
 
   const customer = {
@@ -188,13 +180,13 @@ async function handlePlaceOrder() {
     lastName:    document.getElementById('o_last').value.trim(),
     email:       document.getElementById('o_email').value.trim(),
     phone:       document.getElementById('o_phone').value.trim(),
-    // Point relais Mondial Relay
-    address:     document.getElementById('o_relay_addr').value.trim(),
-    city:        document.getElementById('o_relay_city').value.trim(),
-    zip:         document.getElementById('o_relay_zip').value.trim(),
-    country:     'France',
-    relayId:     document.getElementById('o_relay_id').value.trim(),
-    relayName:   document.getElementById('o_relay_name').value.trim(),
+    // Point relais — lus directement depuis les champs visibles
+    relayName,
+    address: relayAddr,
+    city:    relayCity,
+    zip:     relayZip,
+    country: 'France',
+    relayId: 'MANUEL',
   };
 
   // 1. Créer la commande en BDD (status: pending)

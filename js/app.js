@@ -148,44 +148,17 @@ function initCheckout() {
 }
 
 // ── Widget officiel Mondial Relay v4 — Points Relais ────────────────────
-// Doc : https://widget.mondialrelay.com/
-// Le widget jQuery v4 s'initialise sur une DIV inline (pas de popup).
-// Brand "BDTEST " = compte de démo officiel Mondial Relay (remplacer par votre code client).
+// Le widget jQuery ne peut pas être appelé depuis un module ES (scope isolé).
+// On passe par des fonctions globales définies dans index.html (script classique)
+// et on communique via un événement custom "mr:selected".
 
-let mrWidgetInitialized = false;
-
-/**
- * Initialise le widget Mondial Relay dans #Zone_Widget.
- * Appelé une seule fois au premier clic sur "Rechercher".
- */
-function initMRWidget() {
-  if (mrWidgetInitialized) return;
-  mrWidgetInitialized = true;
-
-  $('#Zone_Widget').MR_ParcelShopPicker({
-    Target:    '#o_relay_id',          // champ hidden qui reçoit l'ID du point relais
-    Brand:     'BDTEST  ',             // ← remplacer par votre code client Mondial Relay
-    Country:   'FR',
-    PostCode:  $('#relay_zip').val(),
-    Responsive: true,
-    ShowResultsOnMap: true,
-    Theme:     'mondialrelay',
-    OnParcelShopSelected: function(data) {
-      // data = objet avec ID, Nom, Adresse1, Adresse2, Ville, CP, Pays...
-      const relay = {
-        id:   data.ID,
-        name: data.Nom,
-        addr: [data.Adresse1, data.Adresse2].filter(Boolean).join(', '),
-        city: data.Ville,
-        zip:  data.CP,
-      };
-      selectRelay(relay);
-    },
-  });
-}
+// Écouter le callback du widget MR (déclenché depuis le script classique de index.html)
+document.addEventListener('mr:selected', e => {
+  selectRelay(e.detail);
+});
 
 /**
- * Lance la recherche : initialise le widget si besoin, puis met à jour le code postal.
+ * Lance la recherche : délègue au pont jQuery défini dans index.html.
  */
 function searchRelayPoints() {
   const zip   = document.getElementById('relay_zip').value.trim();
@@ -202,12 +175,8 @@ function searchRelayPoints() {
   wrap.style.display = '';
   wrap.classList.remove('hidden');
 
-  if (!mrWidgetInitialized) {
-    initMRWidget();
-  } else {
-    // Relancer la recherche avec le nouveau code postal
-    $('#Zone_Widget').MR_ParcelShopPicker('search', zip, 'FR');
-  }
+  // Appel au pont global (script classique dans index.html qui a accès à jQuery)
+  window.searchMRWidget(zip);
 }
 
 function selectRelay(relay) {

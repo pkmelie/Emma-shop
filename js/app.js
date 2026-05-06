@@ -147,12 +147,18 @@ function initCheckout() {
   });
 }
 
-// ── Leaflet + OpenStreetMap + Overpass — Points Relais ────────────────────
-let leafMap = null;
-let leafMarkers = [];
+// ── Widget officiel Mondial Relay — Points Relais ────────────────────
+// Utilise le Web Widget officiel Mondial Relay (données complètes et fiables)
+// Doc : https://www.mondialrelay.fr/media/1199/guide-integration-widget-2-0.pdf
 
-async function searchRelayPoints() {
-  const zip = document.getElementById('relay_zip').value.trim();
+let mrWidgetReady = false;
+
+/**
+ * Lance la recherche via le widget officiel Mondial Relay.
+ * Le widget s'ouvre en popup et rappelle onMRParcelShopSelected() lors du choix.
+ */
+function searchRelayPoints() {
+  const zip   = document.getElementById('relay_zip').value.trim();
   const errEl = document.getElementById('relayError');
   errEl.textContent = '';
 
@@ -161,137 +167,67 @@ async function searchRelayPoints() {
     return;
   }
 
-  const btn = document.getElementById('relaySearchBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Recherche…';
+  // Masquer l'ancien affichage éventuel
+  document.getElementById('relayMapWrap').classList.add('hidden');
 
+  // Ouvrir le widget Mondial Relay
   try {
-    // 1. Géocoder le code postal via Nominatim (OpenStreetMap, gratuit)
-    const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?postalcode=${zip}&country=France&format=json&limit=1`, {
-      headers: { 'Accept-Language': 'fr' }
-    });
-    const geoData = await geoRes.json();
-
-    if (!geoData.length) {
-      errEl.textContent = 'Code postal introuvable. Vérifiez et réessayez.';
-      return;
+    if (typeof MR_WW_Bouton_Widget !== 'undefined') {
+      // Widget v2 chargé
+      MR_WW_Bouton_Widget(
+        zip,           // Code postal de départ
+        'FR',          // Pays
+        '',            // Poids (vide = ignoré)
+        'MR',          // Type livraison : MR = Point Relais
+        '',            // Nb de jours ouvrés
+        null           // Callback (null = utilise onMRParcelShopSelected)
+      );
+    } else {
+      // Fallback : widget v1 ou non chargé — ouvrir la page Mondial Relay
+      errEl.textContent = 'Widget Mondial Relay non disponible. Rechargez la page.';
     }
-
-    const lat = parseFloat(geoData[0].lat);
-    const lon = parseFloat(geoData[0].lon);
-
-    // 2. Chercher les points Mondial Relay via Overpass API
-    const query = `[out:json][timeout:10];
-      node["amenity"="parcel_locker"]["brand"~"Mondial Relay",i](around:3000,${lat},${lon});
-      node["shop"]["name"~"Mondial Relay",i](around:3000,${lat},${lon});
-      out body 10;`;
-
-    const overpassRes = await fetch('https://overpass.kumi.systems/api/interpreter', {
-      method: 'POST',
-      body: query,
-    });
-    const overpassData = await overpassRes.json();
-    let points = overpassData.elements || [];
-
-    // Si Overpass ne trouve rien, fallback : chercher par nom générique
-    if (!points.length) {
-      const query2 = `[out:json][timeout:10];
-        node["name"~"Mondial Relay",i](around:5000,${lat},${lon});
-        out body 10;`;
-      const res2 = await fetch('https://overpass.kumi.systems/api/interpreter', { method: 'POST', body: query2 });
-      const data2 = await res2.json();
-      points = data2.elements || [];
-    }
-
-    initLeafletMap(lat, lon);
-
-    if (!points.length) {
-      // Aucun point dans OSM — afficher la carte centrée + message
-      errEl.textContent = '⚠️ Aucun point relais trouvé dans OpenStreetMap pour ce code postal. Essayez un code postal voisin.';
-      return;
-    }
-
-    renderLeafletPoints(points, zip);
-
-  } catch(err) {
-    errEl.textContent = 'Erreur réseau. Vérifiez votre connexion et réessayez.';
-    console.error(err);
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Rechercher';
+  } catch (e) {
+    errEl.textContent = 'Impossible d\'ouvrir le widget Mondial Relay.';
+    console.error(e);
   }
 }
 
-function initLeafletMap(lat, lon) {
-  const wrap = document.getElementById('relayMapWrap');
-  wrap.classList.remove('hidden');
-
-  // Effacer anciens marqueurs
-  leafMarkers.forEach(m => m.remove());
-  leafMarkers = [];
-  document.getElementById('relayList').innerHTML = '';
-
-  if (!leafMap) {
-    leafMap = L.map('relayMap', { zoomControl: true }).setView([lat, lon], 14);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19,
-    }).addTo(leafMap);
-  } else {
-    leafMap.setView([lat, lon], 14);
-  }
-}
-
-function renderLeafletPoints(points, zip) {
-  const listEl = document.getElementById('relayList');
-  listEl.innerHTML = '';
-
-  const icon = L.divIcon({
-    className: '',
-    html: `<div style="width:26px;height:26px;background:#1a1612;border:2px solid #c9a96e;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#c9a96e;NUM"></div>`,
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
-  });
-
-  points.slice(0, 8).forEach((p, i) => {
-    const name = p.tags?.name || p.tags?.['brand'] || 'Point Relais Mondial Relay';
-    const addr = [p.tags?.['addr:housenumber'], p.tags?.['addr:street']].filter(Boolean).join(' ') || '';
-    const city = p.tags?.['addr:city'] || '';
-    const relayZip = p.tags?.['addr:postcode'] || zip;
-
-    const relay = { id: `osm-${p.id}`, name, addr: addr || city, city, zip: relayZip };
-
-    // Marqueur numéroté
-    const markerIcon = L.divIcon({
-      className: '',
-      html: `<div style="width:26px;height:26px;background:#1a1612;border:2px solid #c9a96e;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#c9a96e">${i+1}</div>`,
-      iconSize: [26, 26],
-      iconAnchor: [13, 13],
-    });
-
-    const marker = L.marker([p.lat, p.lon], { icon: markerIcon }).addTo(leafMap);
-    marker.bindPopup(`<strong style="font-size:13px">${name}</strong><br><span style="font-size:12px;color:#666">${addr}${city ? ', ' + city : ''}</span>`);
-    leafMarkers.push(marker);
-
-    // Item liste
-    const item = document.createElement('div');
-    item.className = 'relay-item';
-    item.innerHTML = `
-      <div class="relay-item-num">${i+1}</div>
-      <div class="relay-item-info">
-        <strong>${name}</strong>
-        <span>${addr}${city ? (addr ? ', ' : '') + city : ''}</span>
-      </div>
-      <button type="button" class="relay-item-btn">Choisir</button>
-    `;
-    item.querySelector('.relay-item-btn').addEventListener('click', () => selectRelay(relay));
-    item.addEventListener('mouseenter', () => {
-      leafMap.panTo([p.lat, p.lon]);
-      marker.openPopup();
-    });
-    listEl.appendChild(item);
-  });
-}
+/**
+ * Callback appelé automatiquement par le widget Mondial Relay quand
+ * le client choisit un point relais.
+ * Les paramètres correspondent aux champs retournés par le widget v2.
+ */
+window.onMRParcelShopSelected = function(
+  mr_Relay_ID,
+  mr_Relay_Nom,
+  mr_Relay_Adr1,
+  mr_Relay_Adr2,
+  mr_Relay_Adr3,
+  mr_Relay_Ville,
+  mr_Relay_CP,
+  mr_Relay_Pays,
+  mr_Relay_Tel,
+  mr_Relay_Lat,
+  mr_Relay_Long,
+  mr_Relay_Horaires_lundi,
+  mr_Relay_Horaires_mardi,
+  mr_Relay_Horaires_mercredi,
+  mr_Relay_Horaires_jeudi,
+  mr_Relay_Horaires_vendredi,
+  mr_Relay_Horaires_samedi,
+  mr_Relay_Horaires_dimanche,
+  mr_Relay_Type,
+  mr_Relay_Activity
+) {
+  const relay = {
+    id:   mr_Relay_ID,
+    name: mr_Relay_Nom,
+    addr: [mr_Relay_Adr1, mr_Relay_Adr2, mr_Relay_Adr3].filter(Boolean).join(', '),
+    city: mr_Relay_Ville,
+    zip:  mr_Relay_CP,
+  };
+  selectRelay(relay);
+};
 
 function selectRelay(relay) {
   document.getElementById('o_relay_id').value   = relay.id;

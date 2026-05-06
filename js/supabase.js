@@ -121,13 +121,18 @@ export async function getAdminSession() {
 // ═══════════════════════════════════════════
 
 export async function fetchAdminStats() {
-  const [ordersRes, notifsRes] = await Promise.all([
+  const [ordersRes, notifsRes, revenueRes, customRes] = await Promise.all([
     db.from('orders').select('id', { count: 'exact', head: true }),
     db.from('notifications').select('id', { count: 'exact', head: true }).eq('read', false),
+    db.from('orders').select('total'),
+    db.from('custom_requests').select('id', { count: 'exact', head: true }),
   ]);
+  const revenue = (revenueRes.data ?? []).reduce((sum, o) => sum + Number(o.total ?? 0), 0);
   return {
-    totalOrders:   ordersRes.count  ?? 0,
-    unreadNotifs:  notifsRes.count  ?? 0,
+    totalOrders:    ordersRes.count  ?? 0,
+    unreadNotifs:   notifsRes.count  ?? 0,
+    revenue,
+    customRequests: customRes.count  ?? 0,
   };
 }
 

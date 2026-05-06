@@ -147,10 +147,9 @@ function initCheckout() {
   });
 }
 
-// ── Google Maps + Places API — Points Relais ──────────────────────────────
-let gMap = null;
-let gMarkers = [];
-let gInfoWindow = null;
+// ── Leaflet + OpenStreetMap + Overpass — Points Relais ────────────────────
+let leafMap = null;
+let leafMarkers = [];
 
 async function searchRelayPoints() {
   const zip = document.getElementById('relay_zip').value.trim();
@@ -166,142 +165,132 @@ async function searchRelayPoints() {
   btn.disabled = true;
   btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Recherche…';
 
-  // Attendre que Google Maps soit prêt
-  await waitForGoogle();
+  try {
+    // 1. Géocoder le code postal via Nominatim (OpenStreetMap, gratuit)
+    const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?postalcode=${zip}&country=France&format=json&limit=1`, {
+      headers: { 'Accept-Language': 'fr' }
+    });
+    const geoData = await geoRes.json();
 
-  // Géocoder le code postal pour obtenir les coordonnées
-  const geocoder = new google.maps.Geocoder();
-  geocoder.geocode({ address: zip + ', France' }, (results, status) => {
-    btn.disabled = false;
-    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Rechercher';
-
-    if (status !== 'OK' || !results.length) {
+    if (!geoData.length) {
       errEl.textContent = 'Code postal introuvable. Vérifiez et réessayez.';
       return;
     }
 
-    const location = results[0].geometry.location;
-    initMap(location);
-    searchNearbyRelays(location);
-  });
-}
+    const lat = parseFloat(geoData[0].lat);
+    const lon = parseFloat(geoData[0].lon);
 
-function waitForGoogle() {
-  return new Promise(resolve => {
-    if (window.google && window.google.maps) { resolve(); return; }
-    const interval = setInterval(() => {
-      if (window.google && window.google.maps) { clearInterval(interval); resolve(); }
-    }, 100);
-  });
-}
+    // 2. Chercher les points Mondial Relay via Overpass API
+    const query = `[out:json][timeout:10];
+      node["amenity"="parcel_locker"]["brand"~"Mondial Relay",i](around:3000,${lat},${lon});
+      node["shop"]["name"~"Mondial Relay",i](around:3000,${lat},${lon});
+      out body 10;`;
 
-function initMap(center) {
-  const wrap = document.getElementById('relayMapWrap');
-  wrap.classList.remove('hidden');
-
-  if (!gMap) {
-    gMap = new google.maps.Map(document.getElementById('relayMap'), {
-      center,
-      zoom: 14,
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: false,
-      styles: [
-        { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-        { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-      ],
+    const overpassRes = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      body: query,
     });
-    gInfoWindow = new google.maps.InfoWindow();
-  } else {
-    gMap.setCenter(center);
-    gMap.setZoom(14);
-  }
+    const overpassData = await overpassRes.json();
+    let points = overpassData.elements || [];
 
-  // Effacer anciens marqueurs
-  gMarkers.forEach(m => m.setMap(null));
-  gMarkers = [];
-  document.getElementById('relayList').innerHTML = '';
-}
+    // Si Overpass ne trouve rien, fallback : chercher par nom générique
+    if (!points.length) {
+      const query2 = `[out:json][timeout:10];
+        node["name"~"Mondial Relay",i](around:5000,${lat},${lon});
+        out body 10;`;
+      const res2 = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: query2 });
+      const data2 = await res2.json();
+      points = data2.elements || [];
+    }
 
-function searchNearbyRelays(location) {
-  const service = new google.maps.places.PlacesService(gMap);
-  const errEl = document.getElementById('relayError');
+    initLeafletMap(lat, lon);
 
-  service.nearbySearch({
-    location,
-    radius: 3000,
-    keyword: 'Mondial Relay point relais',
-    type: 'establishment',
-  }, (results, status) => {
-    if (status !== google.maps.places.PlacesServiceStatus.OK || !results.length) {
-      errEl.textContent = 'Aucun point relais Mondial Relay trouvé près de ce code postal.';
+    if (!points.length) {
+      // Aucun point dans OSM — afficher la carte centrée + message
+      errEl.textContent = '⚠️ Aucun point relais trouvé dans OpenStreetMap pour ce code postal. Essayez un code postal voisin.';
       return;
     }
 
-    const points = results.slice(0, 8);
-    const listEl = document.getElementById('relayList');
-    listEl.innerHTML = '';
+    renderLeafletPoints(points, zip);
 
-    points.forEach((place, i) => {
-      const relay = {
-        id:   place.place_id,
-        name: place.name,
-        addr: place.vicinity || '',
-        city: extractCity(place.vicinity),
-        zip:  document.getElementById('relay_zip').value.trim(),
-        lat:  place.geometry.location.lat(),
-        lng:  place.geometry.location.lng(),
-      };
-
-      // Marqueur sur la carte
-      const marker = new google.maps.Marker({
-        position: place.geometry.location,
-        map: gMap,
-        title: place.name,
-        label: { text: String(i + 1), color: '#fff', fontSize: '11px', fontWeight: 'bold' },
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 14,
-          fillColor: '#1a1612',
-          fillOpacity: 1,
-          strokeColor: '#c9a96e',
-          strokeWeight: 2,
-        },
-      });
-
-      marker.addListener('click', () => {
-        gInfoWindow.setContent(`<div style="font-size:13px;padding:4px 2px"><strong>${place.name}</strong><br><span style="color:#666">${place.vicinity || ''}</span></div>`);
-        gInfoWindow.open(gMap, marker);
-      });
-      gMarkers.push(marker);
-
-      // Item dans la liste
-      const item = document.createElement('div');
-      item.className = 'relay-item';
-      item.innerHTML = `
-        <div class="relay-item-num">${i + 1}</div>
-        <div class="relay-item-info">
-          <strong>${place.name}</strong>
-          <span>${place.vicinity || ''}</span>
-        </div>
-        <button type="button" class="relay-item-btn" data-idx="${i}">Choisir</button>
-      `;
-      item.querySelector('.relay-item-btn').addEventListener('click', () => selectRelay(relay));
-      // Hover sur item → bounce marqueur
-      item.addEventListener('mouseenter', () => {
-        gMap.panTo(place.geometry.location);
-        gInfoWindow.setContent(`<div style="font-size:13px;padding:4px 2px"><strong>${place.name}</strong><br><span style="color:#666">${place.vicinity || ''}</span></div>`);
-        gInfoWindow.open(gMap, marker);
-      });
-      listEl.appendChild(item);
-    });
-  });
+  } catch(err) {
+    errEl.textContent = 'Erreur réseau. Vérifiez votre connexion et réessayez.';
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Rechercher';
+  }
 }
 
-function extractCity(vicinity) {
-  if (!vicinity) return '';
-  const parts = vicinity.split(',');
-  return parts[parts.length - 1].trim();
+function initLeafletMap(lat, lon) {
+  const wrap = document.getElementById('relayMapWrap');
+  wrap.classList.remove('hidden');
+
+  // Effacer anciens marqueurs
+  leafMarkers.forEach(m => m.remove());
+  leafMarkers = [];
+  document.getElementById('relayList').innerHTML = '';
+
+  if (!leafMap) {
+    leafMap = L.map('relayMap', { zoomControl: true }).setView([lat, lon], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19,
+    }).addTo(leafMap);
+  } else {
+    leafMap.setView([lat, lon], 14);
+  }
+}
+
+function renderLeafletPoints(points, zip) {
+  const listEl = document.getElementById('relayList');
+  listEl.innerHTML = '';
+
+  const icon = L.divIcon({
+    className: '',
+    html: `<div style="width:26px;height:26px;background:#1a1612;border:2px solid #c9a96e;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#c9a96e;NUM"></div>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+  });
+
+  points.slice(0, 8).forEach((p, i) => {
+    const name = p.tags?.name || p.tags?.['brand'] || 'Point Relais Mondial Relay';
+    const addr = [p.tags?.['addr:housenumber'], p.tags?.['addr:street']].filter(Boolean).join(' ') || '';
+    const city = p.tags?.['addr:city'] || '';
+    const relayZip = p.tags?.['addr:postcode'] || zip;
+
+    const relay = { id: `osm-${p.id}`, name, addr: addr || city, city, zip: relayZip };
+
+    // Marqueur numéroté
+    const markerIcon = L.divIcon({
+      className: '',
+      html: `<div style="width:26px;height:26px;background:#1a1612;border:2px solid #c9a96e;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#c9a96e">${i+1}</div>`,
+      iconSize: [26, 26],
+      iconAnchor: [13, 13],
+    });
+
+    const marker = L.marker([p.lat, p.lon], { icon: markerIcon }).addTo(leafMap);
+    marker.bindPopup(`<strong style="font-size:13px">${name}</strong><br><span style="font-size:12px;color:#666">${addr}${city ? ', ' + city : ''}</span>`);
+    leafMarkers.push(marker);
+
+    // Item liste
+    const item = document.createElement('div');
+    item.className = 'relay-item';
+    item.innerHTML = `
+      <div class="relay-item-num">${i+1}</div>
+      <div class="relay-item-info">
+        <strong>${name}</strong>
+        <span>${addr}${city ? (addr ? ', ' : '') + city : ''}</span>
+      </div>
+      <button type="button" class="relay-item-btn">Choisir</button>
+    `;
+    item.querySelector('.relay-item-btn').addEventListener('click', () => selectRelay(relay));
+    item.addEventListener('mouseenter', () => {
+      leafMap.panTo([p.lat, p.lon]);
+      marker.openPopup();
+    });
+    listEl.appendChild(item);
+  });
 }
 
 function selectRelay(relay) {
@@ -312,7 +301,7 @@ function selectRelay(relay) {
   document.getElementById('o_relay_zip').value  = relay.zip;
 
   document.getElementById('relaySelectedName').textContent = relay.name;
-  document.getElementById('relaySelectedAddr').textContent = `${relay.addr}`;
+  document.getElementById('relaySelectedAddr').textContent = `${relay.addr}${relay.city ? ', ' + relay.city : ''}`;
   document.getElementById('relaySelected').classList.remove('hidden');
   document.getElementById('relayMapWrap').classList.add('hidden');
   document.getElementById('relayError').textContent = '';

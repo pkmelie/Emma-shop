@@ -186,7 +186,7 @@ async function searchRelayPoints() {
       node["shop"]["name"~"Mondial Relay",i](around:3000,${lat},${lon});
       out body 10;`;
 
-    const overpassRes = await fetch('https://overpass-api.de/api/interpreter', {
+    const overpassRes = await fetch('https://overpass.kumi.systems/api/interpreter', {
       method: 'POST',
       body: query,
     });
@@ -198,7 +198,7 @@ async function searchRelayPoints() {
       const query2 = `[out:json][timeout:10];
         node["name"~"Mondial Relay",i](around:5000,${lat},${lon});
         out body 10;`;
-      const res2 = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: query2 });
+      const res2 = await fetch('https://overpass.kumi.systems/api/interpreter', { method: 'POST', body: query2 });
       const data2 = await res2.json();
       points = data2.elements || [];
     }

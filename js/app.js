@@ -162,11 +162,11 @@ function initMRWidget() {
   if (mrWidgetInitialized) return;
   mrWidgetInitialized = true;
 
-  .MR_ParcelShopPicker({
+  $('#Zone_Widget').MR_ParcelShopPicker({
     Target:    '#o_relay_id',          // champ hidden qui reçoit l'ID du point relais
     Brand:     'BDTEST  ',             // ← remplacer par votre code client Mondial Relay
     Country:   'FR',
-    PostCode:  .val(),
+    PostCode:  $('#relay_zip').val(),
     Responsive: true,
     ShowResultsOnMap: true,
     Theme:     'mondialrelay',
@@ -206,7 +206,7 @@ function searchRelayPoints() {
     initMRWidget();
   } else {
     // Relancer la recherche avec le nouveau code postal
-    .MR_ParcelShopPicker('search', zip, 'FR');
+    $('#Zone_Widget').MR_ParcelShopPicker('search', zip, 'FR');
   }
 }
 

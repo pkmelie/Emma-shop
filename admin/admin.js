@@ -11,6 +11,7 @@ import {
   addProductImage, deleteProductImage, uploadProductImage,
   fetchAdminCustomRequests, updateCustomRequestStatus,
   fetchNotifications, markNotificationsRead, subscribeToNotifications,
+  updateStock, subscribeToProducts,
 } from '../js/supabase.js';
 
 import { initNotifications } from '../js/notifications.js';
@@ -98,6 +99,20 @@ async function showApp() {
 
   await initNotifications('#adminNotifMount', { isAdmin: true });
   await refreshSidebar();
+
+  // Realtime : mise à jour automatique du stock dans le panel produits
+  subscribeToProducts((payload) => {
+    const updated = payload.new;
+    if (!updated) return;
+    // Met à jour la carte produit si elle est affichée
+    const stockEl = document.getElementById(`stock-${updated.id}`);
+    if (stockEl) {
+      stockEl.textContent = `Stock : ${updated.stock}`;
+      stockEl.className = 'pa-stock ' + (updated.stock === 0 ? 'stock-out' : updated.stock <= 3 ? 'stock-low' : 'stock-ok');
+    }
+    // Rafraîchit aussi la liste complète si on est sur la vue produits
+    if (state.view === 'products') loadProducts();
+  });
   switchView('dashboard');
 }
 
@@ -358,6 +373,9 @@ async function loadProducts() {
       <div class="pa-info">
         <p class="pa-name">${esc(p.name)}</p>
         <p class="pa-price">${fmt(p.price)} €</p>
+        <p id="stock-${p.id}" class="pa-stock ${p.stock === 0 ? 'stock-out' : p.stock <= 3 ? 'stock-low' : 'stock-ok'}">
+          Stock : ${p.stock ?? 0}
+        </p>
         <p class="pa-img-count">${(p.product_images || []).length} photo(s)</p>
         <div class="pa-actions">
           <button class="btn-icon" onclick="openProductModal('${p.id}')">✏️ Modifier</button>
@@ -457,6 +475,11 @@ window.saveProduct = async function(existingId) {
 
   const { data, error } = await upsertProduct(payload);
   if (error) { toast('Erreur : ' + error.message, true); return; }
+
+  // Si produit existant : mise à jour du stock via fonction dédiée
+  if (existingId) {
+    await updateStock(existingId, payload.stock);
+  }
 
   toast(existingId ? 'Produit mis à jour !' : 'Produit créé !');
   closeProductModal();

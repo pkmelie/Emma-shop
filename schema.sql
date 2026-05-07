@@ -195,3 +195,44 @@ $$;
 create trigger custom_requests_notify
   after insert on custom_requests
   for each row execute function notify_new_custom_request();
+
+-- ============================================
+-- GESTION DU STOCK — Décrément automatique
+-- ============================================
+
+-- Fonction : décrémente le stock de chaque produit commandé
+-- Appelée automatiquement après chaque insertion dans order_items
+create or replace function decrement_stock_on_order()
+returns trigger language plpgsql security definer as $$
+begin
+  -- Décrémente le stock, minimum 0
+  update products
+  set stock = greatest(0, stock - new.quantity)
+  where id = new.product_id;
+
+  -- Alerte si stock faible (≤ 3) après décrément
+  if (select stock from products where id = new.product_id) <= 3 then
+    insert into notifications (type, title, message)
+    select
+      'low_stock',
+      'Stock faible',
+      'Le produit "' || name || '" n''a plus que ' || stock || ' unité(s) en stock.'
+    from products where id = new.product_id;
+  end if;
+
+  return new;
+end;
+$$;
+
+-- Trigger sur order_items
+create trigger order_items_decrement_stock
+  after insert on order_items
+  for each row execute function decrement_stock_on_order();
+
+-- RLS : permettre à l'admin de mettre à jour le stock
+create policy "products_admin_update"
+  on products for update using (auth.role() = 'authenticated');
+
+-- RLS : permettre à l'admin de lire tous les produits (actifs ou non)
+create policy "products_admin_all"
+  on products for all using (auth.role() = 'authenticated');

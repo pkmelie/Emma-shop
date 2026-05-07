@@ -261,6 +261,40 @@ export function subscribeToNotifications(callback) {
 }
 
 // ═══════════════════════════════════════════
+//  STOCK
+// ═══════════════════════════════════════════
+
+/**
+ * Met à jour manuellement le stock d'un produit (depuis le panel admin).
+ * @param {string} productId
+ * @param {number} newStock
+ * @returns {{ error }}
+ */
+export async function updateStock(productId, newStock) {
+  return db
+    .from('products')
+    .update({ stock: Math.max(0, parseInt(newStock) || 0) })
+    .eq('id', productId);
+}
+
+/**
+ * Souscrit aux changements de stock en temps réel (Supabase Realtime).
+ * Appelle `callback(payload)` dès qu'une ligne products est mise à jour.
+ * @param {(payload: object) => void} callback
+ * @returns {RealtimeChannel}  Appeler `.unsubscribe()` pour nettoyer.
+ */
+export function subscribeToProducts(callback) {
+  return db
+    .channel('products-stock')
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'products' },
+      (payload) => callback(payload)
+    )
+    .subscribe();
+}
+
+// ═══════════════════════════════════════════
 //  STRIPE CHECKOUT
 // ═══════════════════════════════════════════
 

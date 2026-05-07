@@ -143,23 +143,26 @@ function initCheckout() {
     await handlePlaceOrder();
   });
   // Relay search
-  document.getElementById('relaySearchBtn').addEventListener('click', searchRelayPoints);
-  document.getElementById('o_relay_zip_search').addEventListener('keydown', e => {
+  document.getElementById('relaySearchBtn')?.addEventListener('click', searchRelayPoints);
+  document.getElementById('o_relay_zip_search')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); searchRelayPoints(); }
   });
   document.getElementById('relayChangeBtn')?.addEventListener('click', resetRelaySelection);
 }
 
 async function searchRelayPoints() {
-  const zip = document.getElementById('o_relay_zip_search').value.trim();
-  const errEl = document.getElementById('relayError');
+  const zipInput = document.getElementById('o_relay_zip_search');
+  const errEl    = document.getElementById('relayError');
+  const resultsEl = document.getElementById('relayResults');
+  if (!zipInput || !errEl || !resultsEl) return;
+
+  const zip = zipInput.value.trim();
   if (!/^\d{5}$/.test(zip)) {
     errEl.textContent = 'Entrez un code postal à 5 chiffres.';
     return;
   }
   errEl.textContent = '';
   UI.setLoading('relaySearchBtn', true);
-  const resultsEl = document.getElementById('relayResults');
   resultsEl.classList.remove('hidden');
   resultsEl.innerHTML = '<p class="relay-loading">Recherche en cours…</p>';
 

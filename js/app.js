@@ -19,8 +19,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   initCheckout();
   initContact();
   initProductModal(product => {
-    Cart.addItem(product);
-    UI.toast(`"${product.name}" ajouté au panier`);
+    const ok = Cart.addItem(product);
+    if (ok) UI.toast(`"${product.name}" ajouté au panier`);
+    else    UI.toast(`Stock épuisé pour "${product.name}"`, 'error');
   });
 
   
@@ -60,8 +61,9 @@ async function loadCatalog() {
   }
 
   UI.renderProducts(data, product => {
-    Cart.addItem(product);
-    UI.toast(`"${product.name}" ajouté au panier`);
+    const ok = Cart.addItem(product);
+    if (ok) UI.toast(`"${product.name}" ajouté au panier`);
+    else    UI.toast(`Stock épuisé pour "${product.name}"`, 'error');
   });
 
   // Clic sur la carte (hors bouton +) → modal
@@ -114,7 +116,10 @@ function initCart() {
 
   document.getElementById('cartBody').addEventListener('click', e => {
     const btn = e.target.closest('.qty-btn');
-    if (btn) Cart.changeQty(btn.dataset.id, btn.dataset.action === 'inc' ? 1 : -1);
+    if (!btn) return;
+    const delta = btn.dataset.action === 'inc' ? 1 : -1;
+    const ok = Cart.changeQty(btn.dataset.id, delta);
+    if (!ok) UI.toast('Stock maximum atteint pour cet article', 'error');
   });
 
   document.getElementById('checkoutBtn').addEventListener('click', () => {

@@ -38,38 +38,54 @@ export function renderProducts(products, onAdd) {
     products.length + ' article' + (products.length > 1 ? 's' : '');
 
   if (!products.length) {
-    grid.innerHTML = `<p class="empty-state">Aucun produit disponible pour l'instant.</p>`;
+    grid.innerHTML = `
+      <div class="empty-state-full">
+        <div class="empty-state-suits" aria-hidden="true">♠ ♥ ♦ ♣</div>
+        <h3>Bientôt disponible</h3>
+        <p>Notre collection est en cours de préparation.<br>Contactez-nous pour en savoir plus ou passer une commande personnalisée.</p>
+        <button class="btn-outline" data-page="contact">Demande sur mesure →</button>
+      </div>`;
     return;
   }
 
-  grid.innerHTML = products.map(p => `
-    <article class="product-card" data-id="${p.id}">
+  grid.innerHTML = products.map(p => {
+    const inStock = p.stock === undefined || p.stock === null || p.stock > 0;
+    const lowStock = p.stock !== undefined && p.stock !== null && p.stock > 0 && p.stock <= 3;
+    return `
+    <article class="product-card${!inStock ? ' out-of-stock' : ''}" data-id="${p.id}">
       <div class="product-media">
         ${p.image_url
-          ? `<img src="${p.image_url}" alt="${escHtml(p.name)}" loading="lazy" class="product-img" />`
+          ? `<img src="${p.image_url}" alt="${escHtml(p.name)}" loading="lazy" class="product-img"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+             <div class="product-placeholder" aria-hidden="true" style="display:none">
+               <span class="suit-icon">${p.suit_icon || '♠'}</span>
+             </div>`
           : `<div class="product-placeholder" aria-hidden="true">
                <span class="suit-icon">${p.suit_icon || '♠'}</span>
              </div>`
         }
         ${p.badge ? `<span class="product-badge">${escHtml(p.badge)}</span>` : ''}
+        ${!inStock ? `<span class="stock-badge out">Épuisé</span>` : ''}
+        ${lowStock ? `<span class="stock-badge low">Derniers exemplaires</span>` : ''}
       </div>
       <div class="product-info">
         <h3 class="product-name">${escHtml(p.name)}</h3>
         <p class="product-desc">${escHtml(p.description || '')}</p>
         <div class="product-footer">
           <span class="product-price">${formatPrice(p.price)} <small>€</small></span>
-          <button class="add-btn" data-id="${p.id}" aria-label="Ajouter ${escHtml(p.name)} au panier">
+          <button class="add-btn" data-id="${p.id}" aria-label="Ajouter ${escHtml(p.name)} au panier"
+            ${!inStock ? 'disabled aria-disabled="true"' : ''}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
         </div>
       </div>
-    </article>
-  `).join('');
+    </article>`;
+  }).join('');
 
   // Délégation d'événement sur la grille
   grid.addEventListener('click', e => {
     const btn = e.target.closest('.add-btn');
-    if (!btn) return;
+    if (!btn || btn.disabled) return;
     const id = btn.dataset.id;
     const product = products.find(p => p.id === id);
     if (product) {

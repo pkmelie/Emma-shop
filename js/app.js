@@ -45,8 +45,16 @@ function initNavigation() {
 async function loadCatalog() {
   const { data, error } = await fetchProducts();
   if (error) {
-    document.getElementById('productGrid').innerHTML =
-      `<p class="empty-state">Impossible de charger les produits.</p>`;
+    document.getElementById('productGrid').innerHTML = `
+      <div class="empty-state-full error-state">
+        <div class="empty-state-suits" aria-hidden="true">♠ ♥ ♦ ♣</div>
+        <h3>Chargement impossible</h3>
+        <p>Une erreur s'est produite lors du chargement des produits.<br>Vérifiez votre connexion ou réessayez dans quelques instants.</p>
+        <div class="error-state-actions">
+          <button class="btn-outline" onclick="window.location.reload()">Réessayer</button>
+          <button class="btn-outline" data-page="contact">Nous contacter</button>
+        </div>
+      </div>`;
     UI.toast('Erreur chargement produits', 'error');
     return;
   }
@@ -134,15 +142,84 @@ function initCheckout() {
     e.preventDefault();
     await handlePlaceOrder();
   });
+  // Relay search
+  document.getElementById('relaySearchBtn').addEventListener('click', searchRelayPoints);
+  document.getElementById('o_relay_zip_search').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); searchRelayPoints(); }
+  });
+  document.getElementById('relayChangeBtn')?.addEventListener('click', resetRelaySelection);
 }
+
+async function searchRelayPoints() {
+  const zip = document.getElementById('o_relay_zip_search').value.trim();
+  const errEl = document.getElementById('relayError');
+  if (!/^\d{5}$/.test(zip)) {
+    errEl.textContent = 'Entrez un code postal à 5 chiffres.';
+    return;
+  }
+  errEl.textContent = '';
+  UI.setLoading('relaySearchBtn', true);
+  const resultsEl = document.getElementById('relayResults');
+  resultsEl.classList.remove('hidden');
+  resultsEl.innerHTML = '<p class="relay-loading">Recherche en cours…</p>';
+
+  try {
+    const res = await fetch(`/api/relay-points?zip=${zip}`);
+    const json = await res.json();
+    if (!res.ok || json.error) throw new Error(json.error || 'Erreur serveur');
+    if (!json.points?.length) {
+      resultsEl.innerHTML = `<p class="relay-empty">Aucun point relais trouvé pour ce code postal.<br>Essayez un code voisin.</p>`;
+    } else {
+      resultsEl.innerHTML = json.points.map(p => `
+        <button type="button" class="relay-point-item" data-name="${escHtmlAttr(p.name)}" data-addr="${escHtmlAttr(p.addr)}" data-zip="${escHtmlAttr(p.zip)}" data-city="${escHtmlAttr(p.city)}">
+          <span class="relay-point-icon">📍</span>
+          <span class="relay-point-info">
+            <strong>${escHtml(p.name)}</strong>
+            <span>${p.addr ? escHtml(p.addr) + ', ' : ''}${escHtml(p.zip)} ${escHtml(p.city)}</span>
+          </span>
+        </button>`).join('');
+      resultsEl.addEventListener('click', e => {
+        const item = e.target.closest('.relay-point-item');
+        if (item) selectRelayPoint(item.dataset.name, item.dataset.addr, item.dataset.zip, item.dataset.city);
+      }, { once: true });
+    }
+  } catch(err) {
+    resultsEl.innerHTML = `<p class="relay-empty">Impossible de charger les points relais.<br><small>${err.message}</small></p>`;
+  } finally {
+    UI.setLoading('relaySearchBtn', false);
+  }
+}
+
+function selectRelayPoint(name, addr, zip, city) {
+  document.getElementById('o_relay_name_input').value = name;
+  document.getElementById('o_relay_addr_input').value = addr;
+  document.getElementById('o_relay_zip_input').value  = zip;
+  document.getElementById('o_relay_city_input').value = city;
+  document.getElementById('relaySelectedLabel').textContent = `${name} — ${addr ? addr + ', ' : ''}${zip} ${city}`;
+  document.getElementById('relaySelected').classList.remove('hidden');
+  document.getElementById('relayResults').classList.add('hidden');
+  document.getElementById('relayError').textContent = '';
+}
+
+function resetRelaySelection() {
+  ['o_relay_name_input','o_relay_addr_input','o_relay_zip_input','o_relay_city_input'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('relaySelected').classList.add('hidden');
+  document.getElementById('relayResults').classList.add('hidden');
+  document.getElementById('o_relay_zip_search').value = '';
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escHtmlAttr(str) { return escHtml(str || ''); }
 
 function openCheckoutModal() {
   UI.renderOrderSummary(Cart.getItems());
-  // Remettre les champs relais à zéro à chaque ouverture
-  ['o_relay_name_input','o_relay_addr_input','o_relay_zip_input','o_relay_city_input'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
+  // Réinitialiser le sélecteur de point relais
+  resetRelaySelection();
+  document.getElementById('o_relay_zip_search').value = '';
   const errEl = document.getElementById('relayError');
   if (errEl) errEl.textContent = '';
   document.getElementById('checkoutModal').classList.remove('hidden');

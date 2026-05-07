@@ -6,7 +6,31 @@
   <meta name="theme-color" content="#1A1612" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <title>Em'shop</title>
+  <title>Em'shop — Cartes de jeu artisanales</title>
+
+  <!-- SEO -->
+  <meta name="description" content="Em'shop : cartes de jeu artisanales faites main en France. Jeux préfaits, créations sur mesure et coffrets cadeaux. Livraison soignée partout en France." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://emshop.fr/" />
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:url"         content="https://emshop.fr/" />
+  <meta property="og:title"       content="Em'shop — Cartes de jeu artisanales" />
+  <meta property="og:description" content="Cartes de jeu artisanales faites main en France. Jeux préfaits, créations sur mesure et coffrets cadeaux." />
+  <meta property="og:image"       content="https://emshop.fr/og-image.jpg" />
+  <meta property="og:locale"      content="fr_FR" />
+  <meta property="og:site_name"   content="Em'shop" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="Em'shop — Cartes de jeu artisanales" />
+  <meta name="twitter:description" content="Cartes de jeu artisanales faites main en France." />
+  <meta name="twitter:image"       content="https://emshop.fr/og-image.jpg" />
+
+  <!-- Favicon SVG inline -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%231A1612'/><text y='.9em' font-size='72' x='50%' text-anchor='middle' dominant-baseline='top' font-family='serif'>♠</text></svg>" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Josefin+Sans:wght@300;400;600&display=swap" rel="stylesheet" />
@@ -31,6 +55,7 @@
       <a data-page="boutique" class="nav-link active">Boutique</a>
       <a data-page="tarifs"   class="nav-link">Tarifs</a>
       <a data-page="contact"  class="nav-link">Contact</a>
+      <a data-page="mentions" class="nav-link">Mentions légales</a>
     </div>
   </nav>
 
@@ -238,6 +263,67 @@
       </div>
     </section>
 
+    <!-- PAGE : MENTIONS LÉGALES / RGPD -->
+    <section id="page-mentions" class="page">
+      <div class="page-header">
+        <h2 class="section-title">Mentions légales</h2>
+        <p class="page-intro">Informations légales & protection des données</p>
+      </div>
+
+      <div class="mentions-wrap">
+
+        <div class="mentions-block">
+          <h3 class="mentions-heading">Éditeur du site</h3>
+          <p>Em'shop est une activité artisanale exercée à titre individuel.</p>
+          <p>Contact : <a href="mailto:contact@lacarteroyale.fr">contact@lacarteroyale.fr</a></p>
+        </div>
+
+        <div class="mentions-block">
+          <h3 class="mentions-heading">Hébergement</h3>
+          <p>Ce site est hébergé par <strong>Vercel Inc.</strong>, 440 N Barranca Ave #4133, Covina, CA 91723, États-Unis.</p>
+        </div>
+
+        <div class="mentions-block">
+          <h3 class="mentions-heading">Propriété intellectuelle</h3>
+          <p>L'ensemble des contenus du site (textes, images, visuels) est la propriété exclusive d'Em'shop. Toute reproduction, même partielle, est interdite sans autorisation préalable.</p>
+        </div>
+
+        <div class="mentions-block">
+          <h3 class="mentions-heading">Protection des données (RGPD)</h3>
+          <p>En passant commande ou en remplissant le formulaire de contact, vous communiquez des données personnelles (nom, prénom, email, adresse). Ces données sont :</p>
+          <ul class="mentions-list">
+            <li>Collectées uniquement pour le traitement de votre commande ou de votre demande</li>
+            <li>Stockées de façon sécurisée via Supabase (chiffrement au repos et en transit)</li>
+            <li>Jamais revendues ni transmises à des tiers sauf nécessité de livraison</li>
+            <li>Conservées 3 ans à compter de la dernière interaction</li>
+          </ul>
+          <p>Conformément au RGPD, vous disposez d'un droit d'accès, de rectification et de suppression de vos données. Pour exercer ces droits, contactez-nous à <a href="mailto:contact@lacarteroyale.fr">contact@lacarteroyale.fr</a>.</p>
+        </div>
+
+        <div class="mentions-block">
+          <h3 class="mentions-heading">Paiement sécurisé</h3>
+          <p>Les paiements sont traités par <strong>Stripe</strong> (Stripe, Inc., 510 Townsend Street, San Francisco, CA 94103). Em'shop ne stocke à aucun moment vos données bancaires. Stripe est certifié PCI-DSS niveau 1.</p>
+        </div>
+
+        <div class="mentions-block">
+          <h3 class="mentions-heading">Cookies</h3>
+          <p>Ce site n'utilise pas de cookies de traçage ou de publicité. Seuls des cookies techniques strictement nécessaires au fonctionnement du panier sont utilisés.</p>
+        </div>
+
+        <div class="mentions-block">
+          <h3 class="mentions-heading">Conditions générales de vente</h3>
+          <p><strong>Commandes :</strong> Toute commande est ferme et définitive après confirmation du paiement. Les produits restent la propriété d'Em'shop jusqu'à complet encaissement.</p>
+          <p><strong>Livraison :</strong> Expédition sous 3 à 5 jours ouvrés via Mondial Relay. Em'shop ne saurait être tenue responsable des délais de livraison dépendant du transporteur.</p>
+          <p><strong>Retours :</strong> Conformément à l'article L221-18 du Code de la consommation, vous disposez d'un délai de 14 jours pour exercer votre droit de rétractation. Les produits personnalisés sont exclus de ce droit.</p>
+          <p><strong>Réclamations :</strong> En cas de litige, contactez-nous en priorité. En l'absence de résolution amiable, vous pouvez saisir le médiateur de la consommation compétent.</p>
+        </div>
+
+        <div class="mentions-back">
+          <button class="btn-outline-dark" data-page="boutique">← Retour à la boutique</button>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- ══════════════ CART DRAWER ══════════════ -->
@@ -282,39 +368,32 @@
 
           <p class="modal-section">Livraison — Point Relais Mondial Relay</p>
 
-          <!-- Étape 1 : trouver un relais -->
-          <div class="relay-finder-hint">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span>Trouvez d'abord votre point relais sur la carte Mondial Relay, puis copiez son adresse ci-dessous.</span>
-            <a href="https://www.mondialrelay.fr/trouver-le-point-relais/" target="_blank" rel="noopener" class="relay-map-link">
-              Ouvrir la carte ↗
-            </a>
+          <!-- Recherche par code postal -->
+          <div class="relay-search-zone">
+            <div class="relay-search-row">
+              <div class="field" style="flex:1;margin-bottom:0">
+                <label for="o_relay_zip_search">Votre code postal</label>
+                <input type="text" id="o_relay_zip_search" placeholder="ex. 44150" maxlength="5" inputmode="numeric" autocomplete="postal-code" />
+              </div>
+              <button type="button" class="btn-relay-search" id="relaySearchBtn">
+                <span class="btn-label">Rechercher</span>
+                <span class="btn-spinner hidden"></span>
+              </button>
+            </div>
+            <div id="relayResults" class="relay-results hidden"></div>
+            <div id="relaySelected" class="relay-selected hidden">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span id="relaySelectedLabel"></span>
+              <button type="button" class="relay-change-btn" id="relayChangeBtn">Changer</button>
+            </div>
+            <span class="field-err" id="relayError"></span>
           </div>
 
-          <!-- Étape 2 : saisir l'adresse du relais -->
-          <div class="relay-manual-fields">
-            <div class="field">
-              <label for="o_relay_name_input">Nom du point relais <span class="req">*</span></label>
-              <input type="text" id="o_relay_name_input" placeholder="ex. TABAC PRESSE DU CENTRE" autocomplete="off" />
-              <span class="field-err" id="relayError"></span>
-            </div>
-            <div class="field">
-              <label for="o_relay_addr_input">Adresse <span class="req">*</span></label>
-              <input type="text" id="o_relay_addr_input" placeholder="ex. 12 RUE DU GENERAL DE GAULLE" autocomplete="off" />
-            </div>
-            <div class="form-row">
-              <div class="field">
-                <label for="o_relay_zip_input">Code postal <span class="req">*</span></label>
-                <input type="text" id="o_relay_zip_input" placeholder="44150" maxlength="5" />
-              </div>
-              <div class="field">
-                <label for="o_relay_city_input">Ville <span class="req">*</span></label>
-                <input type="text" id="o_relay_city_input" placeholder="ANCENIS" />
-              </div>
-            </div>
-          </div>
-
-          <!-- Champ caché pays (compatibilité BDD) -->
+          <!-- Champs cachés transmis à la commande -->
+          <input type="hidden" id="o_relay_name_input" />
+          <input type="hidden" id="o_relay_addr_input" />
+          <input type="hidden" id="o_relay_zip_input" />
+          <input type="hidden" id="o_relay_city_input" />
           <input type="hidden" id="o_country" value="France" />
 
           <p class="modal-section">Récapitulatif</p>
@@ -343,6 +422,7 @@
   <footer>
     <p class="footer-logo">___ <em>Em</em>'<em>shop</em> ___</p>
     <p class="footer-sub">Création artisanale · France · contact@lacarteroyale.fr</p>
+    <p class="footer-legal"><button data-page="mentions" class="footer-legal-link">Mentions légales & CGV</button></p>
   </footer>
 
   <!-- Supabase SDK (ESM via CDN) -->

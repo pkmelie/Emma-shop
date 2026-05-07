@@ -1,12 +1,26 @@
 /**
  * supabase.js — Client Supabase & toutes les requêtes API
  * ─────────────────────────────────────────────────────────
- * Remplace SUPABASE_URL et SUPABASE_ANON_KEY par tes valeurs
- * Supabase Dashboard → Settings → API
+ * Les clés sont injectées via des <meta> dans index.html,
+ * elles-mêmes remplies par les variables d'environnement Vercel :
+ *   VITE_SUPABASE_URL      → variable d'env Vercel (non préfixée VITE_ si pas de bundler)
+ *   VITE_SUPABASE_ANON_KEY → idem
+ *
+ * Dans index.html (head) :
+ *   <meta name="supabase-url"  content="%VITE_SUPABASE_URL%">
+ *   <meta name="supabase-key"  content="%VITE_SUPABASE_ANON_KEY%">
+ *
+ * ⚠️  NE JAMAIS coller les vraies valeurs ici — ce fichier est public.
  */
 
-const SUPABASE_URL      = 'https://tosizlovzlijltbaosiu.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_c-8V_FDu4ngA1rFom_unBQ_0pfwFYzd';
+function getMeta(name) {
+  const el = document.querySelector(`meta[name="${name}"]`);
+  if (!el || !el.content) throw new Error(`[supabase.js] <meta name="${name}"> manquante ou vide.`);
+  return el.content;
+}
+
+const SUPABASE_URL      = getMeta('supabase-url');
+const SUPABASE_ANON_KEY = getMeta('supabase-key');
 
 // ── Init client (UMD global chargé via <script> dans index.html) ──────────
 export const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -33,15 +47,22 @@ export async function fetchProducts() {
 // ═══════════════════════════════════════════
 
 /**
- * Crée une commande + ses lignes en deux insertions
+ * Crée une commande + ses lignes en deux insertions.
+ *
+ * ⚠️  SÉCURITÉ — Les prix NE sont PAS calculés ici :
+ *   - `total` et `product_price` sont calculés côté serveur dans
+ *     l'Edge Function `create-checkout` qui relit les prix depuis la BDD.
+ *   - On insère `total: 0` comme placeholder ; la fonction le met à jour
+ *     après vérification via `update_order_total()`.
+ *   - On stocke uniquement les `product_id` et `quantity` — jamais le prix
+ *     venu du client.
+ *
  * @param {{ firstName, lastName, email, phone, address }} customer
- * @param {CartItem[]} items
+ * @param {CartItem[]} items  — seuls id et qty sont utilisés
  * @returns {{ order: Order | null, error: Error | null }}
  */
 export async function createOrder(customer, items) {
-  const total = items.reduce((sum, i) => sum + i.price * i.qty, 0);
-
-  // 1. Insérer la commande
+  // 1. Insérer la commande (total = 0, sera mis à jour par l'Edge Function)
   const { data: order, error: orderErr } = await db
     .from('orders')
     .insert({
@@ -49,15 +70,15 @@ export async function createOrder(customer, items) {
       customer_email:   customer.email,
       customer_phone:   customer.phone || null,
       shipping_address: {
-        type:      'point_relais',
-        relay_id:  customer.relayId,
+        type:       'point_relais',
+        relay_id:   customer.relayId,
         relay_name: customer.relayName,
-        line1:     customer.address,
-        city:      customer.city,
-        zip:       customer.zip,
-        country:   customer.country || 'France',
+        line1:      customer.address,
+        city:       customer.city,
+        zip:        customer.zip,
+        country:    customer.country || 'France',
       },
-      total:  parseFloat(total.toFixed(2)),
+      total:  0,          // placeholder — recalculé serveur-side
       status: 'pending',
     })
     .select()
@@ -65,13 +86,15 @@ export async function createOrder(customer, items) {
 
   if (orderErr) return { order: null, error: orderErr };
 
-  // 2. Insérer les lignes
+  // 2. Insérer les lignes — product_price volontairement omis (0 par défaut)
+  //    L'Edge Function `create-checkout` relit les vrais prix depuis products
+  //    et met à jour order_items.product_price + orders.total.
   const rows = items.map(i => ({
-    order_id:      order.id,
-    product_id:    i.id,
-    product_name:  i.name,
-    product_price: i.price,
-    quantity:      i.qty,
+    order_id:     order.id,
+    product_id:   i.id,
+    product_name: i.name,   // snapshot visuel uniquement
+    quantity:     i.qty,
+    product_price: 0,       // sera écrasé par l'Edge Function
   }));
 
   const { error: itemsErr } = await db.from('order_items').insert(rows);
